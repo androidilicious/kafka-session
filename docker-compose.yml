@@ -1,5 +1,8 @@
-# One Kafka broker in KRaft mode (no ZooKeeper) plus a web UI.
-# Start: docker compose up -d      Stop and wipe: docker compose down -v
+# Kafka broker (KRaft mode, no ZooKeeper), topic setup, and a web UI.
+#
+#   docker compose up -d                          Kafka + UI only (run scripts on your laptop)
+#   docker compose --profile apps up -d --build   also run producer + fraud detector in containers
+#   docker compose --profile apps down -v         stop everything and wipe the data
 
 services:
   kafka:
@@ -25,6 +28,24 @@ services:
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_NUM_PARTITIONS: 3
 
+  # Runs once: waits for the broker, creates the three topics, then exits.
+  kafka-init:
+    image: apache/kafka:4.1.0
+    container_name: kafka-init
+    depends_on:
+      - kafka
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        K=/opt/kafka/bin/kafka-topics.sh
+        until $$K --bootstrap-server kafka:29092 --list >/dev/null 2>&1; do
+          echo "waiting for kafka..."; sleep 2
+        done
+        for t in transactions fraud-alerts fraud-reviews; do
+          $$K --bootstrap-server kafka:29092 --create --if-not-exists --topic $$t --partitions 3
+        done
+        echo "topics ready"
+
   kafka-ui:
     image: ghcr.io/kafbat/kafka-ui:latest
     container_name: kafka-ui
@@ -36,3 +57,25 @@ services:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
       DYNAMIC_CONFIG_ENABLED: "true"
+
+  # Optional: the Python apps as containers. Inside the Docker network the
+  # broker address is kafka:29092, passed in as an environment variable.
+  producer:
+    build: .
+    profiles: ["apps"]
+    command: ["python", "producer.py"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+
+  fraud-detector:
+    build: .
+    profiles: ["apps"]
+    command: ["python", "fraud_detector.py"]
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully

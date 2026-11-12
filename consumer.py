@@ -1,7 +1,7 @@
 """Read transactions from a Kafka topic and print them.
 
 Run:                 python consumer.py
-Different group:     python consumer.py --group dashboard
+Different group:     python consumer.py --group audit
 Replay everything:   python consumer.py --group any-new-name
 Stop:                Ctrl+C
 """
@@ -17,7 +17,7 @@ load_dotenv()
 
 BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 TOPIC = os.getenv("KAFKA_TOPIC", "transactions")
-DEFAULT_GROUP = os.getenv("KAFKA_GROUP_ID", "fraud-check")
+DEFAULT_GROUP = os.getenv("KAFKA_GROUP_ID", "printer")
 
 
 def main():
@@ -50,10 +50,10 @@ def main():
                 continue
 
             txn = json.loads(msg.value())
-            flag = "  <-- LARGE" if txn["amount"] > 1500 else ""
             print(
-                f"got   partition={msg.partition()}  offset={msg.offset()}  "
-                f"{txn['account_id']}  {txn['amount']:>8.2f}  {txn['channel']}{flag}"
+                f"got   partition={msg.partition()}  offset={msg.offset():<5}  "
+                f"{txn['account_id']}  {txn['amount']:>8.2f}  {txn['channel']:<6}  "
+                f"{txn['merchant']}, {txn['city']}"
             )
     except KeyboardInterrupt:
         print("\nStopping.")

@@ -1,0 +1,12 @@
+{
+  "name": "kafka-session",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "forwardPorts": [8080, 9092],
+  "portsAttributes": {
+    "8080": { "label": "Kafka UI" }
+  },
+  "postCreateCommand": "pip install -r requirements.txt && cp -n .env.example .env"
+}
