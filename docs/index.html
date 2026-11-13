@@ -4,10 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kafka Lab Walkthrough</title>
+<script>
+try { var t = localStorage.getItem('kafka-lab-theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;700&display=swap">
 <style>
 /* Layout: a sticky step rail on the left, one reading column on the right; each step is concept -> run -> see -> check. */
 :root {
+  color-scheme: light;
   --bg: #f2f5f7; --surface: #ffffff; --ink: #17212b; --muted: #5a6875; --line: #d5dde3;
   --accent: #0b6e69; --accent-soft: #dcefed; --warn: #a8540a; --warn-soft: #fbe9d3;
   --code-bg: #14202a; --code-ink: #e3ecf1; --code-dim: #8fa3b1;
@@ -42,6 +46,7 @@ code { font-family: var(--mono); font-size: .88em; background: var(--accent-soft
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 header.top { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+.title-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; }
 header.top .lede { color: var(--muted); font-size: 1.05rem; }
 
 .cols { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 40px; align-items: start; }
@@ -118,8 +123,9 @@ table.groups td.mono { font-family: var(--mono); }
 <body>
 <div class="wrap">
 <header class="top">
-  <h1>Kafka Lab Walkthrough</h1>
-  <p class="lede">Twelve short steps. Each one introduces one Kafka idea, gives you a command to run, shows what you should see, and ends with a question. You will build a small fraud-detection pipeline on a stream of fake bank transactions.</p>
+  <div class="title-row"><h1>Kafka Lab Walkthrough</h1>
+    <button class="b" type="button" id="themeToggle" aria-label="Switch between light and dark mode">Dark mode</button></div>
+  <p class="lede">A simulator to play with, then twelve short steps. Each step introduces one Kafka idea, gives you a command to run, shows what you should see, and ends with a question. You will build a small fraud-detection pipeline on a stream of fake bank transactions.</p>
 </header>
 
 <div class="cols">
@@ -353,6 +359,22 @@ ALERT LARGE_AMOUNT           ACC-1014   4440.74  Delta, Raleigh</pre></div>
     document.getElementById('bar').style.width = (100 * n / steps.length) + '%';
   }
   paint();
+
+  // ---- Light / dark toggle (follows the system setting until you choose) ----
+  var root = document.documentElement, tb = document.getElementById('themeToggle');
+  function isDark() {
+    var t = root.getAttribute('data-theme');
+    return t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+  function label() { tb.textContent = isDark() ? 'Light mode' : 'Dark mode'; }
+  tb.addEventListener('click', function () {
+    var next = isDark() ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('kafka-lab-theme', next); } catch (e) {}
+    label();
+  });
+  try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', label); } catch (e) {}
+  label();
 
   // ---- Copy buttons on every command block ----
   [].forEach.call(document.querySelectorAll('pre.cmd'), function (pre) {
