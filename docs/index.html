@@ -84,6 +84,25 @@ details.check p { margin-top: 8px; color: var(--muted); }
 label.done-box { display: inline-flex; gap: 8px; align-items: center; font-size: .9rem; color: var(--muted); cursor: pointer; align-self: flex-start; }
 label.done-box input { width: 17px; height: 17px; accent-color: var(--accent); }
 
+/* macOS / Windows switch: blocks tagged os-mac or os-win show for the chosen system only */
+:root[data-os="win"] .os-mac, :root:not([data-os="win"]) .os-win { display: none; }
+.os-switch { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: .9rem; color: var(--muted); }
+.os-switch button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+
+/* Animated flow */
+.flow { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.flow-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.flow-scroll { overflow-x: auto; }
+.flow svg { display: block; width: 100%; min-width: 680px; height: auto; }
+.flow-box { fill: var(--bg); stroke: var(--line); stroke-width: 1.5; }
+.flow-topic { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.flow-wire { stroke: var(--line); stroke-width: 1.5; fill: none; }
+.flow-head-fill { fill: var(--muted); }
+.flow-t { fill: var(--ink); font: 600 13px var(--body); text-anchor: middle; }
+.flow-s { fill: var(--muted); font: 11px var(--body); text-anchor: middle; }
+.flow-lane { font: 600 11px var(--mono); }
+.flow-tag { fill: var(--ink); font: 600 9px var(--mono); }
+
 /* Simulator */
 .sim { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .sim-row { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; align-items: center; }
@@ -140,7 +159,38 @@ table.groups td.mono { font-family: var(--mono); }
 <section class="step" id="picture" data-t="The idea in one picture">
   <div class="step-head"><span class="n">00</span><h2>The idea in one picture</h2></div>
   <p class="idea">Kafka stores messages in a <b>topic</b>. A topic is split into <b>partitions</b>, and each partition is a list that only grows at the end. Every message gets a position number in its partition, called an <b>offset</b>. Readers never remove messages. Each group of readers only remembers how far it has read.</p>
-  <p>Try it here before touching a terminal. Send transactions from different accounts and watch where they land. Then stop a reader group and send more.</p>
+  <div class="flow">
+    <div class="flow-head"><h3>Live flow</h3><button class="b" type="button" id="flowBtn">Pause</button></div>
+    <div class="flow-scroll"><svg viewBox="0 0 860 270" role="img" aria-label="Animated diagram: the producer sends transactions into the three partitions of the transactions topic. Two consumer groups, printer and fraud-detector, each read every message. The fraud detector writes large transactions to the fraud-alerts topic.">
+      <defs><marker id="flowArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" class="flow-head-fill"/></marker></defs>
+      <path class="flow-wire" d="M120,140 L200,80 M120,140 L200,140 M120,140 L200,200"/>
+      <path class="flow-wire" d="M425,80 L520,75 M425,140 L520,75 M425,200 L520,75 M425,80 L520,195 M425,140 L520,195 M425,200 L520,195"/>
+      <path class="flow-wire" d="M650,195 L718,195" marker-end="url(#flowArrow)"/>
+      <rect class="flow-box" x="10" y="110" width="110" height="60" rx="8"/>
+      <text class="flow-t" x="65" y="137">producer.py</text><text class="flow-s" x="65" y="155">key = account id</text>
+      <rect class="flow-topic" x="185" y="22" width="255" height="226" rx="10"/>
+      <text class="flow-t" x="312" y="45">topic: transactions</text>
+      <rect x="230" y="62" width="195" height="36" rx="5" fill="none" stroke="var(--p0)" stroke-width="1.5"/>
+      <rect x="230" y="122" width="195" height="36" rx="5" fill="none" stroke="var(--p1)" stroke-width="1.5"/>
+      <rect x="230" y="182" width="195" height="36" rx="5" fill="none" stroke="var(--p2)" stroke-width="1.5"/>
+      <text class="flow-lane" x="231" y="57" fill="var(--p0)">p0</text><text class="flow-lane" x="231" y="117" fill="var(--p1)">p1</text><text class="flow-lane" x="231" y="177" fill="var(--p2)">p2</text>
+      <text class="flow-s" x="585" y="38">consumer groups</text>
+      <rect class="flow-box" x="520" y="50" width="130" height="50" rx="8"/>
+      <text class="flow-t" x="585" y="72">printer</text><text class="flow-s" x="585" y="89" id="flowPrinter">read 0</text>
+      <rect class="flow-box" x="520" y="170" width="130" height="50" rx="8"/>
+      <text class="flow-t" x="585" y="192">fraud-detector</text><text class="flow-s" x="585" y="209" id="flowDetector">read 0</text>
+      <rect class="flow-topic" x="720" y="170" width="130" height="50" rx="8"/>
+      <text class="flow-t" x="785" y="192">topic: fraud-alerts</text><text class="flow-s" x="785" y="209" id="flowAlerts">0 alerts</text>
+      <g id="flowDots"></g>
+    </svg></div>
+    <div class="sim-msg" id="flowMsg">Each dot is one transaction, labelled with its account. Dots with an orange ring are large amounts.</div>
+  </div>
+  <ul class="plain">
+    <li>The key picks the lane. Watch one account number: it always travels through the same partition.</li>
+    <li>At the end of the lane each message goes to <b>both</b> groups. Groups do not compete with each other.</li>
+    <li>The fraud detector reads one topic and writes to another. Only the ringed dots become alerts.</li>
+  </ul>
+  <p>Now drive it yourself, before touching a terminal. Send transactions from different accounts and watch where they land. Then stop a reader group and send more.</p>
   <div class="sim" aria-label="Topic simulator">
     <h3>Topic: transactions (3 partitions)</h3>
     <div id="parts"></div>
@@ -161,17 +211,35 @@ table.groups td.mono { font-family: var(--mono); }
   <div class="step-head"><span class="n">01</span><h2>Start Kafka</h2></div>
   <p class="idea">A Kafka server is called a <b>broker</b>. This lab runs one broker and a web UI in Docker. Your Python scripts run on your laptop and connect to the broker at <code>localhost:9092</code>.</p>
   <p>You need Docker Desktop running and Python 3.10 or newer.</p>
-  <div class="term"><div class="term-bar"><span>Terminal</span></div><pre class="cmd">git clone https://github.com/androidilicious/kafka-session.git
+  <div class="os-switch" role="group" aria-label="Choose your operating system"><span>Show commands for</span>
+    <button class="b" type="button" id="os-mac" data-os="mac">macOS</button>
+    <button class="b" type="button" id="os-win" data-os="win">Windows</button></div>
+  <p class="os-mac">Open the Terminal app. These commands also work on Linux.</p>
+  <p class="os-win">Open <b>PowerShell</b> (or Windows Terminal), not Command Prompt or Git Bash. Docker Desktop on Windows needs WSL 2, which its installer sets up for you.</p>
+  <div class="term os-mac"><div class="term-bar"><span>Terminal (macOS)</span></div><pre class="cmd">git clone https://github.com/androidilicious/kafka-session.git
 cd kafka-session
 
 cp .env.example .env
 docker compose up -d
 
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt</pre></div>
+  <div class="term os-win"><div class="term-bar"><span>PowerShell (Windows)</span></div><pre class="cmd">git clone https://github.com/androidilicious/kafka-session.git
+cd kafka-session
+
+Copy-Item .env.example .env
+docker compose up -d
+
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt</pre></div>
+  <div class="note os-win"><b>If PowerShell says running scripts is disabled:</b> run <code>Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned</code>, then run the <code>Activate.ps1</code> line again. This only affects the current window.</div>
   <div class="note"><b>If pip fails while building confluent-kafka:</b> your Python is too new to have a prebuilt package. Create the virtual environment with an older Python such as 3.12 and install again.</div>
   <p>Open <a href="http://localhost:8080">http://localhost:8080</a>. You should see one cluster named <code>local</code>. Keep this tab open for the whole lab.</p>
+  <p>The lab uses several terminals at once. <b>In every new terminal</b>, go to the <code>kafka-session</code> folder and activate the environment first, or <code>python</code> will not find the Kafka library:</p>
+  <div class="term os-mac"><div class="term-bar"><span>Every new terminal (macOS)</span></div><pre class="cmd">source .venv/bin/activate</pre></div>
+  <div class="term os-win"><div class="term-bar"><span>Every new PowerShell window (Windows)</span></div><pre class="cmd">.venv\Scripts\Activate.ps1</pre></div>
   <label class="done-box"><input type="checkbox" id="done-setup"> Kafka UI shows the cluster</label>
 </section>
 
@@ -179,8 +247,9 @@ pip install -r requirements.txt</pre></div>
   <div class="step-head"><span class="n">02</span><h2>Topics and partitions</h2></div>
   <p class="idea">A <b>topic</b> is a named stream, like a table name. Its <b>partitions</b> are what let Kafka spread a topic across machines and let several readers share the work.</p>
   <p>The lab created three topics for you when it started. Look at one:</p>
-  <div class="term"><div class="term-bar"><span>Terminal</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-topics.sh \
+  <div class="term os-mac"><div class="term-bar"><span>Terminal (macOS)</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-topics.sh \
   --describe --topic transactions --bootstrap-server localhost:9092</pre></div>
+  <div class="term os-win"><div class="term-bar"><span>PowerShell (Windows)</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-topics.sh --describe --topic transactions --bootstrap-server localhost:9092</pre></div>
   <div class="term out"><div class="term-bar"><span>You should see</span></div><pre>Topic: transactions   PartitionCount: 3   ReplicationFactor: 1
     Topic: transactions   Partition: 0   Leader: 1   Replicas: 1   Isr: 1
     Topic: transactions   Partition: 1   Leader: 1   Replicas: 1   Isr: 1
@@ -241,8 +310,9 @@ got   partition=1  offset=1      ACC-1005    433.21  branch  Shell, Atlanta</pre
   <div class="step-head"><span class="n">07</span><h2>Stop a consumer and watch lag</h2></div>
   <p class="idea"><b>Lag</b> is how many messages a group has not read yet: the end of the partition minus the group's committed offset. It is the number people watch in production to see whether a consumer is keeping up.</p>
   <p>Stop Terminal B with Ctrl+C. Leave the producer running for 30 seconds, then run:</p>
-  <div class="term"><div class="term-bar"><span>Terminal B</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-consumer-groups.sh \
+  <div class="term os-mac"><div class="term-bar"><span>Terminal B (macOS)</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-consumer-groups.sh \
   --describe --group printer --bootstrap-server localhost:9092</pre></div>
+  <div class="term os-win"><div class="term-bar"><span>Terminal B (Windows)</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-consumer-groups.sh --describe --group printer --bootstrap-server localhost:9092</pre></div>
   <div class="term out"><div class="term-bar"><span>You should see something like</span></div><pre>Consumer group 'printer' has no active members.
 GROUP     TOPIC         PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG
 printer   transactions  1          7               17              10
@@ -376,6 +446,21 @@ ALERT LARGE_AMOUNT           ACC-1014   4440.74  Delta, Raleigh</pre></div>
   try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', label); } catch (e) {}
   label();
 
+  // ---- macOS / Windows switch (macOS by default; Windows laptops are detected) ----
+  var osRoot = document.documentElement, osKey = 'kafka-lab-os', os = null;
+  try { os = localStorage.getItem(osKey); } catch (e) {}
+  if (os !== 'mac' && os !== 'win') os = /Windows/i.test(navigator.userAgent) ? 'win' : 'mac';
+  function setOs(v) {
+    os = v; osRoot.setAttribute('data-os', v);
+    ['mac', 'win'].forEach(function (k) { document.getElementById('os-' + k).setAttribute('aria-pressed', String(k === v)); });
+  }
+  ['mac', 'win'].forEach(function (k) {
+    document.getElementById('os-' + k).addEventListener('click', function () {
+      setOs(k); try { localStorage.setItem(osKey, k); } catch (e) {}
+    });
+  });
+  setOs(os);
+
   // ---- Copy buttons on every command block ----
   [].forEach.call(document.querySelectorAll('pre.cmd'), function (pre) {
     var b = document.createElement('button');
@@ -442,6 +527,69 @@ ALERT LARGE_AMOUNT           ACC-1014   4440.74  Delta, Raleigh</pre></div>
     render();
   });
   reset(); render();
+
+  // ---- Animated flow: producer -> partitions -> consumer groups -> alerts ----
+  var NS = 'http://www.w3.org/2000/svg', layer = document.getElementById('flowDots'), fbtn = document.getElementById('flowBtn');
+  var LANE = [80, 140, 200], dots = [], playing = false, lastT = 0, since = 0, SPEED = 110; // SVG units per second
+  var nPrinter = 0, nDetector = 0, nAlerts = 0;
+  function mk(path, color, tag, ring, onEnd) {
+    var g = document.createElementNS(NS, 'g'), c = document.createElementNS(NS, 'circle');
+    c.setAttribute('r', 6); c.setAttribute('fill', color);
+    if (ring) { c.setAttribute('stroke', 'var(--warn)'); c.setAttribute('stroke-width', 3); }
+    g.appendChild(c);
+    if (tag) { var t = document.createElementNS(NS, 'text'); t.textContent = tag; t.setAttribute('y', -9); t.setAttribute('text-anchor', 'middle'); t.setAttribute('class', 'flow-tag'); g.appendChild(t); }
+    layer.appendChild(g);
+    var d = { g: g, path: path, seg: 0, d: 0, onEnd: onEnd };
+    place(d); dots.push(d);
+  }
+  function place(d) {
+    var a = d.path[d.seg], b = d.path[d.seg + 1], L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, f = Math.min(d.d / L, 1);
+    d.g.setAttribute('transform', 'translate(' + (a[0] + (b[0] - a[0]) * f).toFixed(1) + ',' + (a[1] + (b[1] - a[1]) * f).toFixed(1) + ')');
+    return L;
+  }
+  function move(d, dist) {       // returns false when the dot reaches the end of its path
+    d.d += dist;
+    for (;;) {
+      var L = place(d);
+      if (d.d < L) return true;
+      d.d -= L; d.seg++;
+      if (d.seg >= d.path.length - 1) { d.g.parentNode.removeChild(d.g); if (d.onEnd) d.onEnd(); return false; }
+    }
+  }
+  function advance(dist) {
+    var cur = dots; dots = [];   // dots created by onEnd land in the new list
+    cur.forEach(function (d) { if (move(d, dist)) dots.push(d); });
+  }
+  function counts() {
+    document.getElementById('flowPrinter').textContent = 'read ' + nPrinter;
+    document.getElementById('flowDetector').textContent = 'read ' + nDetector;
+    document.getElementById('flowAlerts').textContent = nAlerts + (nAlerts === 1 ? ' alert' : ' alerts');
+  }
+  function emit() {
+    var a = ACCTS[Math.floor(Math.random() * ACCTS.length)], p = MAP[a], y = LANE[p], col = COLORS[p], large = Math.random() < 0.2;
+    mk([[120, 140], [200, y], [425, y]], col, a.slice(4), large, function () {
+      mk([[425, y], [520, 75]], col, null, large, function () { nPrinter++; counts(); });
+      mk([[425, y], [520, 195]], col, null, large, function () {
+        nDetector++; counts();
+        if (large) mk([[650, 195], [718, 195]], 'var(--warn)', null, false, function () { nAlerts++; counts(); });
+      });
+    });
+  }
+  function frame(t) {
+    if (!playing) return;
+    var dt = Math.min((t - lastT) / 1000, 0.1); lastT = t; since += dt;
+    if (since > 0.9) { since = 0; emit(); }
+    advance(dt * SPEED);
+    requestAnimationFrame(frame);
+  }
+  function setPlaying(on) {
+    playing = on; fbtn.textContent = on ? 'Pause' : 'Play';
+    if (on) { lastT = performance.now(); requestAnimationFrame(frame); }
+  }
+  fbtn.addEventListener('click', function () { setPlaying(!playing); });
+  for (var k = 0; k < 4; k++) { emit(); advance(100); }   // a filled first frame, also shown when motion is reduced
+  var calm = false; try { calm = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+  setPlaying(!calm);
 })();
 </script>
 </body>
