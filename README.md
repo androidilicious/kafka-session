@@ -12,6 +12,8 @@ producer.py ──> [transactions] ──> consumer.py        (prints every mess
 
 Names in `[brackets]` are Kafka topics. Everything else is a Python script.
 
+**Step-by-step walkthrough:** https://androidilicious.github.io/kafka-session/
+
 ## Is it containerized?
 
 - **Kafka, topic setup, and Kafka UI** always run in Docker containers.

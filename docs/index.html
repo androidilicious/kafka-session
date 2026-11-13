@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kafka Lab Walkthrough</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: a sticky step rail on the left, one reading column on the right; each step is concept -> run -> see -> check. */
+:root {
+  --bg: #f2f5f7; --surface: #ffffff; --ink: #17212b; --muted: #5a6875; --line: #d5dde3;
+  --accent: #0b6e69; --accent-soft: #dcefed; --warn: #a8540a; --warn-soft: #fbe9d3;
+  --code-bg: #14202a; --code-ink: #e3ecf1; --code-dim: #8fa3b1;
+  --p0: #2f6fd0; --p1: #0b8a7f; --p2: #b0418f;
+  --display: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+  --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #10171d; --surface: #18222b; --ink: #e6edf2; --muted: #9aabb8; --line: #2c3a45;
+  --accent: #4fc4bb; --accent-soft: #173a39; --warn: #f0a04b; --warn-soft: #3d2a12;
+  --code-bg: #0a1015; --code-ink: #dbe6ec; --code-dim: #7f93a1;
+  --p0: #6ea4f2; --p1: #4fc4bb; --p2: #e07cc2; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #10171d; --surface: #18222b; --ink: #e6edf2; --muted: #9aabb8; --line: #2c3a45;
+  --accent: #4fc4bb; --accent-soft: #173a39; --warn: #f0a04b; --warn-soft: #3d2a12;
+  --code-bg: #0a1015; --code-ink: #dbe6ec; --code-dim: #7f93a1;
+  --p0: #6ea4f2; --p1: #4fc4bb; --p2: #e07cc2; color-scheme: dark }
+
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--body); }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.2; margin: 0; }
+h1 { font-size: 2rem; font-weight: 700; }
+h2 { font-size: 1.4rem; font-weight: 700; }
+h3 { font-size: .78rem; font-family: var(--body); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+p { margin: 0; max-width: 66ch; }
+a { color: var(--accent); }
+code { font-family: var(--mono); font-size: .88em; background: var(--accent-soft); padding: .1em .35em; border-radius: 4px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header.top { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+header.top .lede { color: var(--muted); font-size: 1.05rem; }
+
+.cols { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 40px; align-items: start; }
+nav.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); display: flex; flex-direction: column; gap: 12px; }
+nav.rail ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+nav.rail a { display: flex; gap: 10px; align-items: baseline; padding: 5px 8px; border-radius: 6px; color: var(--ink); text-decoration: none; font-size: .9rem; }
+nav.rail a:hover { background: var(--accent-soft); }
+nav.rail .n { font-family: var(--mono); font-size: .75rem; color: var(--muted); min-width: 1.6em; font-variant-numeric: tabular-nums; }
+nav.rail a.done .n { color: var(--accent); font-weight: 600; }
+nav.rail a.done { color: var(--muted); }
+.progress { font-size: .85rem; color: var(--muted); }
+.bar { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+
+main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
+section.step { display: flex; flex-direction: column; gap: 16px; scroll-margin-top: 20px; min-width: 0; }
+.step-head { display: flex; gap: 12px; align-items: baseline; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+.step-head .n { font-family: var(--mono); color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums; }
+.idea { font-size: 1.05rem; }
+.block { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+ul.plain { margin: 0; padding-left: 1.2em; max-width: 66ch; display: flex; flex-direction: column; gap: 4px; }
+
+.term { background: var(--code-bg); color: var(--code-ink); border-radius: 8px; overflow: hidden; }
+.term-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 8px 6px 14px; font: 600 .72rem var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--code-dim); }
+.term pre { margin: 0; padding: 4px 14px 14px; overflow-x: auto; font: .84rem/1.6 var(--mono); }
+.term.out pre { color: var(--code-dim); }
+.copy { font: 600 .72rem var(--body); color: var(--code-ink); background: transparent; border: 1px solid var(--code-dim); border-radius: 5px; padding: 3px 9px; cursor: pointer; }
+.copy:hover { border-color: var(--code-ink); }
+
+details.check { border-left: 3px solid var(--accent); padding: 2px 0 2px 14px; }
+details.check summary { cursor: pointer; font-weight: 600; max-width: 66ch; }
+details.check p { margin-top: 8px; color: var(--muted); }
+.note { background: var(--warn-soft); color: var(--ink); border-radius: 8px; padding: 10px 14px; font-size: .93rem; max-width: 66ch; }
+.note b { color: var(--warn); }
+label.done-box { display: inline-flex; gap: 8px; align-items: center; font-size: .9rem; color: var(--muted); cursor: pointer; align-self: flex-start; }
+label.done-box input { width: 17px; height: 17px; accent-color: var(--accent); }
+
+/* Simulator */
+.sim { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.sim-row { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; align-items: center; }
+.sim-row .lab { font: 600 .78rem var(--mono); }
+.cells { display: flex; gap: 4px; overflow-x: auto; padding: 3px 0 6px; min-height: 50px; }
+.cell { flex: 0 0 auto; width: 46px; border: 1.5px solid currentColor; border-radius: 5px; text-align: center; font: .68rem/1.35 var(--mono); padding: 3px 0; background: var(--surface); }
+.cell b { display: block; color: var(--ink); font-weight: 600; }
+.cell.hit { background: var(--accent-soft); }
+.cell.unread { border-style: dashed; background: var(--warn-soft); }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.controls span { font-size: .85rem; color: var(--muted); }
+button.b { font: 500 .85rem var(--body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 11px; cursor: pointer; }
+button.b:hover { border-color: var(--accent); }
+button.b.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.tablewrap { overflow-x: auto; }
+table.groups { border-collapse: collapse; font-size: .86rem; width: 100%; min-width: 420px; font-variant-numeric: tabular-nums; }
+table.groups th, table.groups td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.groups th { font-weight: 600; color: var(--muted); font-size: .76rem; text-transform: uppercase; letter-spacing: .06em; }
+table.groups td.mono { font-family: var(--mono); }
+.pill { font: 600 .72rem var(--body); padding: 2px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); }
+.pill.stopped { background: var(--warn-soft); color: var(--warn); }
+.lag { font-weight: 600; } .lag.pos { color: var(--warn); }
+.sim-msg { font-size: .88rem; color: var(--muted); min-height: 1.5em; }
+.diagram { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.diagram pre { margin: 0; padding: 14px; font: .8rem/1.5 var(--mono); color: var(--ink); }
+
+@media (max-width: 860px) {
+  .cols { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  nav.rail { position: static; }
+  nav.rail ol { flex-direction: row; flex-wrap: wrap; }
+  nav.rail a { padding: 4px 8px; border: 1px solid var(--line); }
+  h1 { font-size: 1.6rem; }
+  .sim-row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <h1>Kafka Lab Walkthrough</h1>
+  <p class="lede">Twelve short steps. Each one introduces one Kafka idea, gives you a command to run, shows what you should see, and ends with a question. You will build a small fraud-detection pipeline on a stream of fake bank transactions.</p>
+</header>
+
+<div class="cols">
+<nav class="rail" aria-label="Steps">
+  <div class="progress"><span id="count">0 of 12 done</span></div>
+  <div class="bar"><i id="bar"></i></div>
+  <ol id="rail"></ol>
+</nav>
+
+<main>
+
+<section class="step" id="picture" data-t="The idea in one picture">
+  <div class="step-head"><span class="n">00</span><h2>The idea in one picture</h2></div>
+  <p class="idea">Kafka stores messages in a <b>topic</b>. A topic is split into <b>partitions</b>, and each partition is a list that only grows at the end. Every message gets a position number in its partition, called an <b>offset</b>. Readers never remove messages. Each group of readers only remembers how far it has read.</p>
+  <p>Try it here before touching a terminal. Send transactions from different accounts and watch where they land. Then stop a reader group and send more.</p>
+  <div class="sim" aria-label="Topic simulator">
+    <h3>Topic: transactions (3 partitions)</h3>
+    <div id="parts"></div>
+    <div class="controls"><span>Send from</span><span id="acctBtns"></span>
+      <button class="b" id="send5">Send 5 random</button><button class="b" id="reset">Reset</button></div>
+    <div class="tablewrap"><table class="groups"><thead><tr><th>Consumer group</th><th>Status</th><th>Read / stored (p0, p1, p2)</th><th>Lag</th><th></th></tr></thead><tbody id="groups"></tbody></table></div>
+    <div class="sim-msg" id="simMsg">Dashed boxes are messages a stopped group has not read yet.</div>
+  </div>
+  <ul class="plain">
+    <li>Each account always lands in the same row. That row is its partition.</li>
+    <li>Stopping <code>printer</code> does not stop the producer or the <code>audit</code> group. Its unread messages wait, and the count of them is its <b>lag</b>.</li>
+    <li>Starting it again continues from where it stopped. Nothing is lost and nothing is read twice.</li>
+  </ul>
+  <label class="done-box"><input type="checkbox" id="done-picture"> I have tried the simulator</label>
+</section>
+
+<section class="step" id="setup" data-t="Start Kafka">
+  <div class="step-head"><span class="n">01</span><h2>Start Kafka</h2></div>
+  <p class="idea">A Kafka server is called a <b>broker</b>. This lab runs one broker and a web UI in Docker. Your Python scripts run on your laptop and connect to the broker at <code>localhost:9092</code>.</p>
+  <p>You need Docker Desktop running and Python 3.10 or newer.</p>
+  <div class="term"><div class="term-bar"><span>Terminal</span></div><pre class="cmd">git clone https://github.com/androidilicious/kafka-session.git
+cd kafka-session
+
+cp .env.example .env
+docker compose up -d
+
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt</pre></div>
+  <div class="note"><b>If pip fails while building confluent-kafka:</b> your Python is too new to have a prebuilt package. Create the virtual environment with an older Python such as 3.12 and install again.</div>
+  <p>Open <a href="http://localhost:8080">http://localhost:8080</a>. You should see one cluster named <code>local</code>. Keep this tab open for the whole lab.</p>
+  <label class="done-box"><input type="checkbox" id="done-setup"> Kafka UI shows the cluster</label>
+</section>
+
+<section class="step" id="topic" data-t="Topics and partitions">
+  <div class="step-head"><span class="n">02</span><h2>Topics and partitions</h2></div>
+  <p class="idea">A <b>topic</b> is a named stream, like a table name. Its <b>partitions</b> are what let Kafka spread a topic across machines and let several readers share the work.</p>
+  <p>The lab created three topics for you when it started. Look at one:</p>
+  <div class="term"><div class="term-bar"><span>Terminal</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-topics.sh \
+  --describe --topic transactions --bootstrap-server localhost:9092</pre></div>
+  <div class="term out"><div class="term-bar"><span>You should see</span></div><pre>Topic: transactions   PartitionCount: 3   ReplicationFactor: 1
+    Topic: transactions   Partition: 0   Leader: 1   Replicas: 1   Isr: 1
+    Topic: transactions   Partition: 1   Leader: 1   Replicas: 1   Isr: 1
+    Topic: transactions   Partition: 2   Leader: 1   Replicas: 1   Isr: 1</pre></div>
+  <p>In Kafka UI, open <b>Topics</b>. You should see <code>transactions</code>, <code>fraud-alerts</code> and <code>fraud-reviews</code>, all empty.</p>
+  <details class="check"><summary>Check: ReplicationFactor is 1. What would a real cluster use, and why?</summary><p>Usually 3. Each partition is then copied to three brokers, so the data survives if one broker dies. We have one broker, so there is nowhere to put a second copy.</p></details>
+  <label class="done-box"><input type="checkbox" id="done-topic"> Done</label>
+</section>
+
+<section class="step" id="producer" data-t="Produce messages">
+  <div class="step-head"><span class="n">03</span><h2>Produce messages</h2></div>
+  <p class="idea">A <b>producer</b> is any program that writes to a topic. It does not know or care who will read the messages. The broker replies to each write with the partition and offset where the message was stored.</p>
+  <div class="term"><div class="term-bar"><span>Terminal A</span></div><pre class="cmd">python producer.py</pre></div>
+  <div class="term out"><div class="term-bar"><span>You should see</span></div><pre>Producing to topic 'transactions' on localhost:9092 at 1.0/s. Ctrl+C to stop.
+sent  partition=0  offset=0      ACC-1013    526.19  branch  Target
+sent  partition=1  offset=0      ACC-1030    224.63  atm     Delta
+sent  partition=1  offset=1      ACC-1005    433.21  branch  Shell</pre></div>
+  <p>Leave it running. In Kafka UI, open <b>Topics → transactions → Messages</b> and look at one message. It has a key (the account id), a value (JSON), a partition and an offset.</p>
+  <details class="check"><summary>Check: no consumer is running. Where are the messages going?</summary><p>Into the topic, on the broker's disk. Kafka stores messages whether or not anyone is reading. That is the main difference from a classic message queue.</p></details>
+  <label class="done-box"><input type="checkbox" id="done-producer"> Done</label>
+</section>
+
+<section class="step" id="keys" data-t="Keys and ordering">
+  <div class="step-head"><span class="n">04</span><h2>Keys and ordering</h2></div>
+  <p class="idea">The producer sends each transaction with a <b>key</b>, the account id. Kafka hashes the key to choose the partition, so the same key always goes to the same partition. Order is only guaranteed inside one partition, so this is how one account's transactions stay in order.</p>
+  <p>Stop the producer with Ctrl+C and restart it faster, so accounts repeat sooner:</p>
+  <div class="term"><div class="term-bar"><span>Terminal A</span></div><pre class="cmd">python producer.py --rate 5</pre></div>
+  <p>Pick one account id and follow it for 20 seconds. For example, <code>ACC-1005</code> lands on partition 1 every time.</p>
+  <details class="check"><summary>Check: does an account's partition ever change? What would break if it did?</summary><p>It never changes while the topic has 3 partitions, because partition = hash(key) mod 3. If it changed, two transactions from one account could be read in the wrong order, and a fraud rule like "4 transactions in 2 seconds" would miss them.</p></details>
+  <p>Stop it again and go back to the normal speed for the next steps: <code>python producer.py</code></p>
+  <label class="done-box"><input type="checkbox" id="done-keys"> Done</label>
+</section>
+
+<section class="step" id="consumer" data-t="Consume messages">
+  <div class="step-head"><span class="n">05</span><h2>Consume messages</h2></div>
+  <p class="idea">A <b>consumer</b> reads from a topic. Every consumer belongs to a <b>consumer group</b>, and Kafka stores the group's position (its <b>committed offset</b>) for each partition.</p>
+  <div class="term"><div class="term-bar"><span>Terminal B</span></div><pre class="cmd">python consumer.py</pre></div>
+  <div class="term out"><div class="term-bar"><span>You should see</span></div><pre>Group 'printer' reading topic 'transactions' on localhost:9092. Ctrl+C to stop.
+got   partition=2  offset=0      ACC-1021    234.18  atm     Uber, New York
+got   partition=1  offset=0      ACC-1030    224.63  atm     Delta, Durham
+got   partition=1  offset=1      ACC-1005    433.21  branch  Shell, Atlanta</pre></div>
+  <p>It first prints everything sent before it started, then each new transaction within a second of Terminal A sending it.</p>
+  <details class="check"><summary>Check: the first lines jump between partitions. Is the consumer reading out of order?</summary><p>No. Inside each partition the offsets go 0, 1, 2 in order. Across partitions there is no order at all, and Kafka does not promise one.</p></details>
+  <label class="done-box"><input type="checkbox" id="done-consumer"> Done</label>
+</section>
+
+<section class="step" id="groups" data-t="A second group">
+  <div class="step-head"><span class="n">06</span><h2>A second consumer group</h2></div>
+  <p class="idea">Groups are independent. Each group gets every message and keeps its own offsets. Adding a new reader needs no change to the producer or to other readers.</p>
+  <p>Leave A and B running.</p>
+  <div class="term"><div class="term-bar"><span>Terminal C</span></div><pre class="cmd">python consumer.py --group audit</pre></div>
+  <p>Terminal C prints every message too, including those sent before it started.</p>
+  <details class="check"><summary>Check: in Kafka UI, open Consumers. How many groups are there, and what is each one's lag?</summary><p>Two: <code>printer</code> and <code>audit</code>. Both show a lag of 0 or a few messages. It rarely reads exactly 0 because a consumer saves its position every 5 seconds, not after every message.</p></details>
+  <label class="done-box"><input type="checkbox" id="done-groups"> Done</label>
+</section>
+
+<section class="step" id="lag" data-t="Lag">
+  <div class="step-head"><span class="n">07</span><h2>Stop a consumer and watch lag</h2></div>
+  <p class="idea"><b>Lag</b> is how many messages a group has not read yet: the end of the partition minus the group's committed offset. It is the number people watch in production to see whether a consumer is keeping up.</p>
+  <p>Stop Terminal B with Ctrl+C. Leave the producer running for 30 seconds, then run:</p>
+  <div class="term"><div class="term-bar"><span>Terminal B</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-consumer-groups.sh \
+  --describe --group printer --bootstrap-server localhost:9092</pre></div>
+  <div class="term out"><div class="term-bar"><span>You should see something like</span></div><pre>Consumer group 'printer' has no active members.
+GROUP     TOPIC         PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG
+printer   transactions  1          7               17              10
+printer   transactions  2          8               18              10
+printer   transactions  0          12              22              10</pre></div>
+  <p>The same numbers are in Kafka UI under <b>Consumers → printer</b>. Now start the consumer again:</p>
+  <div class="term"><div class="term-bar"><span>Terminal B</span></div><pre class="cmd">python consumer.py</pre></div>
+  <p>It prints the backlog in a burst, then goes back to one message per second.</p>
+  <details class="check"><summary>Check: were any messages lost or printed twice?</summary><p>No. The group resumed from its committed offset on each partition. The messages waited in the topic the whole time.</p></details>
+  <label class="done-box"><input type="checkbox" id="done-lag"> Done</label>
+</section>
+
+<section class="step" id="replay" data-t="Replay">
+  <div class="step-head"><span class="n">08</span><h2>Replay from the beginning</h2></div>
+  <p class="idea">Reading does not delete. Messages stay until the topic's retention time passes (7 days by default), so a new reader can process the full history.</p>
+  <p>Use a group name Kafka has never seen:</p>
+  <div class="term"><div class="term-bar"><span>Terminal D</span></div><pre class="cmd">python consumer.py --group replay-1</pre></div>
+  <p>Every message since the topic was created prints again, starting at offset 0. Stop it with Ctrl+C when it catches up.</p>
+  <details class="check"><summary>Check: why did replay-1 start at offset 0 while printer resumed where it left off?</summary><p><code>printer</code> has committed offsets, so it continues from them. <code>replay-1</code> has none, so the consumer falls back to its <code>auto.offset.reset</code> setting, which <code>consumer.py</code> sets to <code>earliest</code>.</p></details>
+  <label class="done-box"><input type="checkbox" id="done-replay"> Done</label>
+</section>
+
+<section class="step" id="scale" data-t="Share the work">
+  <div class="step-head"><span class="n">09</span><h2>Share the work inside one group</h2></div>
+  <p class="idea">Two consumers with the <b>same</b> group id do not both get every message. Kafka gives each partition to exactly one consumer in the group. When a consumer joins or leaves, Kafka reassigns the partitions. This is called a <b>rebalance</b>, and it is how you scale a reader.</p>
+  <p>Stop Terminals B, C and D. Start the same group in two terminals:</p>
+  <div class="term"><div class="term-bar"><span>Terminal B, then again in Terminal C</span></div><pre class="cmd">python consumer.py --group team</pre></div>
+  <p>Look at the <code>partition=</code> column in each terminal. One prints two of the partitions and the other prints the third. Now stop one of them with Ctrl+C. Within a few seconds the survivor prints all three.</p>
+  <details class="check"><summary>Check: the topic has 3 partitions. What happens if you start a fourth consumer in the group?</summary><p>It gets no partition and sits idle. The number of partitions is the limit on how many consumers in one group can work at once.</p></details>
+  <label class="done-box"><input type="checkbox" id="done-scale"> Done</label>
+</section>
+
+<section class="step" id="pipeline" data-t="Build a pipeline">
+  <div class="step-head"><span class="n">10</span><h2>Build a pipeline</h2></div>
+  <p class="idea">A program can be a consumer and a producer at once: read from one topic, do some work, write to another. Chaining these is how streaming pipelines are built. Topics are the connections between the stages.</p>
+  <div class="diagram"><pre>producer.py ──> [transactions] ──> fraud_detector.py ──> [fraud-alerts]
+                      │                                        │
+                      └──────────> dashboard.py <──────────────┘</pre></div>
+  <p>Stop the extra consumers. Restart the producer faster, then start the detector and the dashboard:</p>
+  <div class="term"><div class="term-bar"><span>Terminal A</span></div><pre class="cmd">python producer.py --rate 5</pre></div>
+  <div class="term"><div class="term-bar"><span>Terminal B</span></div><pre class="cmd">python fraud_detector.py</pre></div>
+  <div class="term"><div class="term-bar"><span>Terminal C</span></div><pre class="cmd">python dashboard.py</pre></div>
+  <div class="term out"><div class="term-bar"><span>Terminal B should show</span></div><pre>Reading 'transactions', writing alerts to 'fraud-alerts'. Ctrl+C to stop.
+ALERT VELOCITY               ACC-1046    611.24  Cosmic Cantina, Atlanta
+ALERT LARGE_AMOUNT           ACC-1014   4440.74  Delta, Raleigh</pre></div>
+  <p>The detector has two rules: one transaction of 3000 or more, or 4 transactions from one account within 2 seconds. In Kafka UI, open the <code>fraud-alerts</code> topic and read a message.</p>
+  <details class="check"><summary>Check: the detector keeps each account's recent history in memory. If you ran two detectors in the same group, could one account be split between them?</summary><p>No. The key sends an account to one partition (step 04), and a partition belongs to one consumer in the group (step 09). So each account is seen by exactly one detector.</p></details>
+  <details class="check"><summary>Check: stop and restart dashboard.py. Its totals come back. From where?</summary><p>From Kafka. The dashboard never commits offsets, so on every start it reads both topics from the beginning and rebuilds its totals. The topic is the source of truth, and the totals are just a view of it.</p></details>
+  <label class="done-box"><input type="checkbox" id="done-pipeline"> Done</label>
+</section>
+
+<section class="step" id="agent" data-t="Add an AI agent">
+  <div class="step-head"><span class="n">11</span><h2>Add an AI agent (optional)</h2></div>
+  <p class="idea">An AI agent fits into Kafka like any other program. It is one more consumer group that reads a topic and writes to another.</p>
+  <p>Open <code>.env</code> in your editor and set <code>ANTHROPIC_API_KEY</code> to your key. Then:</p>
+  <div class="term"><div class="term-bar"><span>Terminal D</span></div><pre class="cmd">python agent_consumer.py</pre></div>
+  <p>For each new alert, the agent asks Claude for a two-sentence review and writes it to <code>fraud-reviews</code>. Open that topic in Kafka UI.</p>
+  <div class="note"><b>If the key is blank:</b> the agent starts normally, then stops with an authentication error on the first alert. Never paste your key into a chat or commit <code>.env</code>.</div>
+  <details class="check"><summary>Check: what had to change in Kafka, the producer or the detector to add the agent?</summary><p>Nothing. The agent only needed the name of the topic to read. If you stop it for a minute and restart it, the alerts from that minute are still in the topic and it reviews them then.</p></details>
+  <label class="done-box"><input type="checkbox" id="done-agent"> Done</label>
+</section>
+
+<section class="step" id="cleanup" data-t="Clean up">
+  <div class="step-head"><span class="n">12</span><h2>Clean up</h2></div>
+  <p>Stop every script with Ctrl+C, then remove the containers and their data:</p>
+  <div class="term"><div class="term-bar"><span>Terminal</span></div><pre class="cmd">docker compose --profile apps down -v</pre></div>
+  <h3>What you covered</h3>
+  <ul class="plain">
+    <li><b>Topic, partition, offset:</b> where messages live and how they are numbered.</li>
+    <li><b>Producer and key:</b> the key picks the partition, which keeps one account in order.</li>
+    <li><b>Consumer group and committed offset:</b> each group reads everything at its own pace.</li>
+    <li><b>Lag and replay:</b> unread messages wait, and old messages can be read again.</li>
+    <li><b>Rebalance:</b> consumers in one group split the partitions between them.</li>
+    <li><b>Consume, process, produce:</b> topics connect the stages of a pipeline.</li>
+  </ul>
+  <label class="done-box"><input type="checkbox" id="done-cleanup"> Done</label>
+</section>
+
+</main>
+</div>
+</div>
+
+<script>
+(function () {
+  // ---- Step rail and progress (remembered in this browser only) ----
+  var steps = [].slice.call(document.querySelectorAll('section.step'));
+  var rail = document.getElementById('rail');
+  var KEY = 'kafka-lab-done';
+  var done = {};
+  try { done = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { done = {}; }
+  steps.forEach(function (s, i) {
+    var li = document.createElement('li'), a = document.createElement('a');
+    a.href = '#' + s.id; a.id = 'rail-' + s.id;
+    a.innerHTML = '<span class="n"></span><span></span>';
+    a.lastChild.textContent = s.dataset.t;
+    li.appendChild(a); rail.appendChild(li);
+    var box = document.getElementById('done-' + s.id);
+    box.checked = !!done[s.id];
+    box.addEventListener('change', function () {
+      done[s.id] = box.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(done)); } catch (e) {}
+      paint();
+    });
+  });
+  function paint() {
+    var n = 0;
+    steps.forEach(function (s, i) {
+      var a = document.getElementById('rail-' + s.id), d = !!done[s.id];
+      if (d) n++;
+      a.classList.toggle('done', d);
+      a.firstChild.textContent = d ? '✓' : ('0' + i).slice(-2);
+    });
+    document.getElementById('count').textContent = n + ' of ' + steps.length + ' done';
+    document.getElementById('bar').style.width = (100 * n / steps.length) + '%';
+  }
+  paint();
+
+  // ---- Copy buttons on every command block ----
+  [].forEach.call(document.querySelectorAll('pre.cmd'), function (pre) {
+    var b = document.createElement('button');
+    b.className = 'copy'; b.type = 'button'; b.textContent = 'Copy';
+    b.addEventListener('click', function () {
+      var text = pre.textContent;
+      function ok() { b.textContent = 'Copied'; setTimeout(function () { b.textContent = 'Copy'; }, 1500); }
+      function fallback() { var r = document.createRange(); r.selectNodeContents(pre); var s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = 'Selected'; }
+      try { navigator.clipboard.writeText(text).then(ok, fallback); } catch (e) { fallback(); }
+    });
+    pre.parentNode.querySelector('.term-bar').appendChild(b);
+  });
+
+  // ---- Topic simulator ----
+  // Real key -> partition mapping observed for these accounts on a 3-partition topic.
+  var MAP = { 'ACC-1001': 0, 'ACC-1002': 2, 'ACC-1003': 1, 'ACC-1004': 2, 'ACC-1005': 1 };
+  var ACCTS = Object.keys(MAP), COLORS = ['var(--p0)', 'var(--p1)', 'var(--p2)'];
+  var parts, groups, last;
+  function reset() {
+    parts = [[], [], []]; last = null;
+    groups = [{ name: 'printer', on: true, off: [0, 0, 0] }, { name: 'audit', on: true, off: [0, 0, 0] }];
+    ['ACC-1005', 'ACC-1003', 'ACC-1001', 'ACC-1004', 'ACC-1005', 'ACC-1002', 'ACC-1001', 'ACC-1003'].forEach(function (a) { send(a, true); });
+    say('Dashed boxes are messages a stopped group has not read yet.');
+  }
+  function send(acct, quiet) {
+    var p = MAP[acct]; parts[p].push(acct); last = acct;
+    groups.forEach(function (g) { if (g.on) g.off = parts.map(function (x) { return x.length; }); });
+    if (!quiet) say(acct + ' → partition ' + p + ', offset ' + (parts[p].length - 1));
+  }
+  function lag(g) { return parts.reduce(function (s, x, i) { return s + x.length - g.off[i]; }, 0); }
+  function say(t) { document.getElementById('simMsg').textContent = t; }
+  function render() {
+    var printer = groups[0];
+    document.getElementById('parts').innerHTML = parts.map(function (msgs, p) {
+      return '<div class="sim-row"><span class="lab" style="color:' + COLORS[p] + '">partition ' + p + '</span><div class="cells" style="color:' + COLORS[p] + '">' +
+        msgs.map(function (a, o) {
+          var cls = 'cell' + (a === last ? ' hit' : '') + (o >= printer.off[p] ? ' unread' : '');
+          return '<span class="' + cls + '">' + o + '<b>' + a.slice(4) + '</b></span>';
+        }).join('') + '</div></div>';
+    }).join('');
+    document.getElementById('groups').innerHTML = groups.map(function (g, i) {
+      var l = lag(g);
+      return '<tr><td class="mono">' + g.name + '</td><td><span class="pill' + (g.on ? '' : ' stopped') + '">' + (g.on ? 'running' : 'stopped') + '</span></td>' +
+        '<td class="mono">' + parts.map(function (x, p) { return g.off[p] + '/' + x.length; }).join('  ') + '</td>' +
+        '<td class="lag' + (l ? ' pos' : '') + '">' + l + '</td>' +
+        '<td><button class="b" type="button" data-g="' + i + '">' + (g.on ? 'Stop' : 'Start') + '</button></td></tr>';
+    }).join('');
+    [].forEach.call(document.querySelectorAll('.cells'), function (c) { c.scrollLeft = c.scrollWidth; });
+  }
+  document.getElementById('acctBtns').innerHTML = ACCTS.map(function (a) { return '<button class="b primary" type="button" data-a="' + a + '">' + a + '</button>'; }).join(' ');
+  document.getElementById('acctBtns').addEventListener('click', function (e) {
+    var a = e.target.getAttribute('data-a'); if (a) { send(a); render(); }
+  });
+  document.getElementById('send5').addEventListener('click', function () {
+    for (var i = 0; i < 5; i++) send(ACCTS[Math.floor(Math.random() * ACCTS.length)], true);
+    say('Sent 5 transactions from random accounts.'); render();
+  });
+  document.getElementById('reset').addEventListener('click', function () { reset(); render(); });
+  document.getElementById('groups').addEventListener('click', function (e) {
+    var i = e.target.getAttribute('data-g'); if (i === null) return;
+    var g = groups[+i];
+    if (g.on) { g.on = false; say(g.name + ' stopped. Send more transactions and watch its lag grow.'); }
+    else { var l = lag(g); g.on = true; g.off = parts.map(function (x) { return x.length; }); say(g.name + ' restarted and caught up on ' + l + ' message' + (l === 1 ? '' : 's') + ' from its committed offsets.'); }
+    render();
+  });
+  reset(); render();
+})();
+</script>
+</body>
+</html>
