@@ -9,7 +9,7 @@ try { var t = localStorage.getItem('kafka-lab-theme'); if (t === 'light' || t ==
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;700&display=swap">
 <style>
-/* Layout: a sticky step rail on the left, one reading column on the right; each step is concept -> run -> see -> check. */
+/* Layout: a sticky step rail on the left, one reading column on the right; each step is question -> idea -> run -> see -> check. */
 :root {
   color-scheme: light;
   --bg: #f2f5f7; --surface: #ffffff; --ink: #17212b; --muted: #5a6875; --line: #d5dde3;
@@ -65,9 +65,11 @@ main { display: flex; flex-direction: column; gap: 56px; min-width: 0; }
 section.step { display: flex; flex-direction: column; gap: 16px; scroll-margin-top: 20px; min-width: 0; }
 .step-head { display: flex; gap: 12px; align-items: baseline; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
 .step-head .n { font-family: var(--mono); color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums; }
+.ask { font-family: var(--display); font-weight: 500; font-size: 1.12rem; color: var(--accent); }
 .idea { font-size: 1.05rem; }
-.block { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 ul.plain { margin: 0; padding-left: 1.2em; max-width: 66ch; display: flex; flex-direction: column; gap: 4px; }
+.roll { border-left: 3px solid var(--p2); padding: 2px 0 2px 14px; color: var(--muted); max-width: 66ch; }
+.roll b { color: var(--ink); }
 
 .term { background: var(--code-bg); color: var(--code-ink); border-radius: 8px; overflow: hidden; }
 .term-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 8px 6px 14px; font: 600 .72rem var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--code-dim); }
@@ -84,17 +86,22 @@ details.check p { margin-top: 8px; color: var(--muted); }
 label.done-box { display: inline-flex; gap: 8px; align-items: center; font-size: .9rem; color: var(--muted); cursor: pointer; align-self: flex-start; }
 label.done-box input { width: 17px; height: 17px; accent-color: var(--accent); }
 
+button.b { font: 500 .85rem var(--body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 11px; cursor: pointer; }
+button.b:hover { border-color: var(--accent); }
+button.b.primary, .seg button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+button.b.danger { border-color: var(--warn); color: var(--warn); }
+.seg { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: .9rem; color: var(--muted); }
+
 /* macOS / Windows switch: blocks tagged os-mac or os-win show for the chosen system only */
 :root[data-os="win"] .os-mac, :root:not([data-os="win"]) .os-win { display: none; }
-.os-switch { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: .9rem; color: var(--muted); }
-.os-switch button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
 
 /* Animated flow */
-.flow { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.flow-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.flow, .sim { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.flow-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
 .flow-scroll { overflow-x: auto; }
 .flow svg { display: block; width: 100%; min-width: 680px; height: auto; }
 .flow-box { fill: var(--bg); stroke: var(--line); stroke-width: 1.5; }
+.flow-box.down { fill: var(--warn-soft); stroke: var(--warn); stroke-dasharray: 6 4; }
 .flow-topic { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
 .flow-wire { stroke: var(--line); stroke-width: 1.5; fill: none; }
 .flow-head-fill { fill: var(--muted); }
@@ -102,9 +109,9 @@ label.done-box input { width: 17px; height: 17px; accent-color: var(--accent); }
 .flow-s { fill: var(--muted); font: 11px var(--body); text-anchor: middle; }
 .flow-lane { font: 600 11px var(--mono); }
 .flow-tag { fill: var(--ink); font: 600 9px var(--mono); }
+.sim-msg { font-size: .88rem; color: var(--muted); min-height: 1.5em; }
 
 /* Simulator */
-.sim { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .sim-row { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; align-items: center; }
 .sim-row .lab { font: 600 .78rem var(--mono); }
 .cells { display: flex; gap: 4px; overflow-x: auto; padding: 3px 0 6px; min-height: 50px; }
@@ -114,9 +121,6 @@ label.done-box input { width: 17px; height: 17px; accent-color: var(--accent); }
 .cell.unread { border-style: dashed; background: var(--warn-soft); }
 .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .controls span { font-size: .85rem; color: var(--muted); }
-button.b { font: 500 .85rem var(--body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 11px; cursor: pointer; }
-button.b:hover { border-color: var(--accent); }
-button.b.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
 .tablewrap { overflow-x: auto; }
 table.groups { border-collapse: collapse; font-size: .86rem; width: 100%; min-width: 420px; font-variant-numeric: tabular-nums; }
 table.groups th, table.groups td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
@@ -125,9 +129,11 @@ table.groups td.mono { font-family: var(--mono); }
 .pill { font: 600 .72rem var(--body); padding: 2px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); }
 .pill.stopped { background: var(--warn-soft); color: var(--warn); }
 .lag { font-weight: 600; } .lag.pos { color: var(--warn); }
-.sim-msg { font-size: .88rem; color: var(--muted); min-height: 1.5em; }
 .diagram { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
 .diagram pre { margin: 0; padding: 14px; font: .8rem/1.5 var(--mono); color: var(--ink); }
+table.recap { border-collapse: collapse; font-size: .93rem; width: 100%; min-width: 480px; }
+table.recap th, table.recap td { text-align: left; padding: 7px 14px 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.recap th { font-weight: 600; color: var(--muted); font-size: .76rem; text-transform: uppercase; letter-spacing: .06em; }
 
 @media (max-width: 860px) {
   .cols { grid-template-columns: minmax(0, 1fr); gap: 24px; }
@@ -144,74 +150,87 @@ table.groups td.mono { font-family: var(--mono); }
 <header class="top">
   <div class="title-row"><h1>Kafka Lab Walkthrough</h1>
     <button class="b" type="button" id="themeToggle" aria-label="Switch between light and dark mode">Dark mode</button></div>
-  <p class="lede">A simulator to play with, then twelve short steps. Each step introduces one Kafka idea, gives you a command to run, shows what you should see, and ends with a question. You will build a small fraud-detection pipeline on a stream of fake bank transactions.</p>
+  <p class="lede">It is Black Friday and your online store is about to fall over. This page starts with that story, then takes you through twelve hands-on steps. Each step asks one question, answers it with one Kafka idea, and gives you a command to run.</p>
 </header>
 
 <div class="cols">
 <nav class="rail" aria-label="Steps">
-  <div class="progress"><span id="count">0 of 12 done</span></div>
+  <div class="progress"><span id="count">0 of 13 done</span></div>
   <div class="bar"><i id="bar"></i></div>
   <ol id="rail"></ol>
 </nav>
 
 <main>
 
-<section class="step" id="picture" data-t="The idea in one picture">
-  <div class="step-head"><span class="n">00</span><h2>The idea in one picture</h2></div>
-  <p class="idea">Kafka stores messages in a <b>topic</b>. A topic is split into <b>partitions</b>, and each partition is a list that only grows at the end. Every message gets a position number in its partition, called an <b>offset</b>. Readers never remove messages. Each group of readers only remembers how far it has read.</p>
+<section class="step" id="story" data-t="Black Friday">
+  <div class="step-head"><span class="n">00</span><h2>Black Friday at Bull City Market</h2></div>
+  <p class="idea">You run the checkout for an online store. When a customer places an order, four other things have to happen: a confirmation email goes out, stock is reduced, the order is checked for fraud, and the live sales board is updated.</p>
+  <p>The first version was simple. Checkout calls each service in turn and waits for the answer. On a normal Tuesday that works. Then Black Friday starts.</p>
   <div class="flow">
-    <div class="flow-head"><h3>Live flow</h3><button class="b" type="button" id="flowBtn">Pause</button></div>
-    <div class="flow-scroll"><svg viewBox="0 0 860 270" role="img" aria-label="Animated diagram: the producer sends transactions into the three partitions of the transactions topic. Two consumer groups, printer and fraud-detector, each read every message. The fraud detector writes large transactions to the fraud-alerts topic.">
+    <div class="flow-head">
+      <div class="seg" role="group" aria-label="Choose the design"><span>Design</span>
+        <button class="b" type="button" id="modeDirect" aria-pressed="true">Direct calls</button>
+        <button class="b" type="button" id="modeKafka" aria-pressed="false">With Kafka</button></div>
+      <div class="seg"><button class="b danger" type="button" id="invBtn">Take inventory down</button>
+        <button class="b" type="button" id="flowBtn">Pause</button></div>
+    </div>
+    <div class="flow-scroll"><svg viewBox="0 0 860 290" role="img" aria-label="Animated diagram with two designs. In the direct design, checkout calls notifications, then inventory, then the fraud check, and every order waits for all three. In the Kafka design, checkout writes each order to the orders topic, which has three partitions, and the notifications, inventory and fraud-detector groups each read every order on their own.">
       <defs><marker id="flowArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" class="flow-head-fill"/></marker></defs>
-      <path class="flow-wire" d="M120,140 L200,80 M120,140 L200,140 M120,140 L200,200"/>
-      <path class="flow-wire" d="M425,80 L520,75 M425,140 L520,75 M425,200 L520,75 M425,80 L520,195 M425,140 L520,195 M425,200 L520,195"/>
-      <path class="flow-wire" d="M650,195 L718,195" marker-end="url(#flowArrow)"/>
-      <rect class="flow-box" x="10" y="110" width="110" height="60" rx="8"/>
-      <text class="flow-t" x="65" y="137">producer.py</text><text class="flow-s" x="65" y="155">key = account id</text>
-      <rect class="flow-topic" x="185" y="22" width="255" height="226" rx="10"/>
-      <text class="flow-t" x="312" y="45">topic: transactions</text>
-      <rect x="230" y="62" width="195" height="36" rx="5" fill="none" stroke="var(--p0)" stroke-width="1.5"/>
-      <rect x="230" y="122" width="195" height="36" rx="5" fill="none" stroke="var(--p1)" stroke-width="1.5"/>
-      <rect x="230" y="182" width="195" height="36" rx="5" fill="none" stroke="var(--p2)" stroke-width="1.5"/>
-      <text class="flow-lane" x="231" y="57" fill="var(--p0)">p0</text><text class="flow-lane" x="231" y="117" fill="var(--p1)">p1</text><text class="flow-lane" x="231" y="177" fill="var(--p2)">p2</text>
-      <text class="flow-s" x="585" y="38">consumer groups</text>
-      <rect class="flow-box" x="520" y="50" width="130" height="50" rx="8"/>
-      <text class="flow-t" x="585" y="72">printer</text><text class="flow-s" x="585" y="89" id="flowPrinter">read 0</text>
-      <rect class="flow-box" x="520" y="170" width="130" height="50" rx="8"/>
-      <text class="flow-t" x="585" y="192">fraud-detector</text><text class="flow-s" x="585" y="209" id="flowDetector">read 0</text>
-      <rect class="flow-topic" x="720" y="170" width="130" height="50" rx="8"/>
-      <text class="flow-t" x="785" y="192">topic: fraud-alerts</text><text class="flow-s" x="785" y="209" id="flowAlerts">0 alerts</text>
+      <g id="flowD">
+        <text class="flow-s" x="430" y="72">Checkout calls each service in turn and waits for the last one to answer.</text>
+        <path class="flow-wire" d="M130,145 L248,145" marker-end="url(#flowArrow)"/>
+        <path class="flow-wire" d="M380,145 L468,145" marker-end="url(#flowArrow)"/>
+        <path class="flow-wire" d="M600,145 L688,145" marker-end="url(#flowArrow)"/>
+        <rect class="flow-box" x="10" y="115" width="120" height="60" rx="8"/>
+        <text class="flow-t" x="70" y="142">checkout</text><text class="flow-s" x="70" y="160" id="dDone">0 done</text>
+        <rect class="flow-box" x="250" y="115" width="130" height="60" rx="8"/>
+        <text class="flow-t" x="315" y="142">notifications</text><text class="flow-s" x="315" y="160">sends the email</text>
+        <rect class="flow-box" x="470" y="115" width="130" height="60" rx="8" id="flowInvD"/>
+        <text class="flow-t" x="535" y="142">inventory</text><text class="flow-s" x="535" y="160" id="dWait">updates stock</text>
+        <rect class="flow-box" x="690" y="115" width="130" height="60" rx="8"/>
+        <text class="flow-t" x="755" y="142">fraud check</text><text class="flow-s" x="755" y="160">approves the order</text>
+      </g>
+      <g id="flowK" display="none">
+        <path class="flow-wire" d="M120,145 L230,85 M120,145 L230,145 M120,145 L230,205"/>
+        <path class="flow-wire" d="M425,85 L470,145 M425,145 L470,145 M425,205 L470,145 M470,145 L520,55 M470,145 L520,145 M470,145 L520,235"/>
+        <path class="flow-wire" d="M660,235 L728,235" marker-end="url(#flowArrow)"/>
+        <rect class="flow-box" x="10" y="115" width="110" height="60" rx="8"/>
+        <text class="flow-t" x="65" y="142">checkout</text><text class="flow-s" x="65" y="160" id="kDone">0 orders placed</text>
+        <rect class="flow-topic" x="185" y="22" width="255" height="246" rx="10"/>
+        <text class="flow-t" x="312" y="44">topic: orders</text>
+        <rect x="230" y="67" width="195" height="36" rx="5" fill="none" stroke="var(--p0)" stroke-width="1.5"/>
+        <rect x="230" y="127" width="195" height="36" rx="5" fill="none" stroke="var(--p1)" stroke-width="1.5"/>
+        <rect x="230" y="187" width="195" height="36" rx="5" fill="none" stroke="var(--p2)" stroke-width="1.5"/>
+        <text class="flow-lane" x="231" y="62" fill="var(--p0)">p0</text><text class="flow-lane" x="231" y="122" fill="var(--p1)">p1</text><text class="flow-lane" x="231" y="182" fill="var(--p2)">p2</text>
+        <text class="flow-s" x="590" y="18">consumer groups</text>
+        <rect class="flow-box" x="520" y="30" width="140" height="50" rx="8"/>
+        <text class="flow-t" x="590" y="52">notifications</text><text class="flow-s" x="590" y="69" id="kNotif">read 0</text>
+        <rect class="flow-box" x="520" y="120" width="140" height="50" rx="8" id="flowInvK"/>
+        <text class="flow-t" x="590" y="142">inventory</text><text class="flow-s" x="590" y="159" id="kInv">read 0</text>
+        <rect class="flow-box" x="520" y="210" width="140" height="50" rx="8"/>
+        <text class="flow-t" x="590" y="232">fraud-detector</text><text class="flow-s" x="590" y="249" id="kFraud">read 0</text>
+        <rect class="flow-topic" x="730" y="210" width="120" height="50" rx="8"/>
+        <text class="flow-t" x="790" y="232">fraud-alerts</text><text class="flow-s" x="790" y="249" id="kAlerts">0 alerts</text>
+      </g>
       <g id="flowDots"></g>
     </svg></div>
-    <div class="sim-msg" id="flowMsg">Each dot is one transaction, labelled with its account. Dots with an orange ring are large amounts.</div>
+    <div class="sim-msg" id="flowMsg">Each dot is one order, labelled with its customer number.</div>
   </div>
+  <p><b>Try this.</b> In <b>Direct calls</b>, press <b>Take inventory down</b> and watch the checkout counter. Bring it back. Then switch to <b>With Kafka</b> and do the same thing.</p>
   <ul class="plain">
-    <li>The key picks the lane. Watch one account number: it always travels through the same partition.</li>
-    <li>At the end of the lane each message goes to <b>both</b> groups. Groups do not compete with each other.</li>
-    <li>The fraud detector reads one topic and writes to another. Only the ringed dots become alerts.</li>
+    <li><b>Direct calls:</b> one broken service stops every order. Customers stare at a loading screen, and orders placed during the outage can be lost. The services are <b>tightly coupled</b>.</li>
+    <li><b>With Kafka:</b> checkout writes the order down in one shared place and moves on. Each service reads from that place at its own speed. A broken service falls behind, then catches up.</li>
   </ul>
-  <p>Now drive it yourself, before touching a terminal. Send transactions from different accounts and watch where they land. Then stop a reader group and send more.</p>
-  <div class="sim" aria-label="Topic simulator">
-    <h3>Topic: transactions (3 partitions)</h3>
-    <div id="parts"></div>
-    <div class="controls"><span>Send from</span><span id="acctBtns"></span>
-      <button class="b" id="send5">Send 5 random</button><button class="b" id="reset">Reset</button></div>
-    <div class="tablewrap"><table class="groups"><thead><tr><th>Consumer group</th><th>Status</th><th>Read / stored (p0, p1, p2)</th><th>Lag</th><th></th></tr></thead><tbody id="groups"></tbody></table></div>
-    <div class="sim-msg" id="simMsg">Dashed boxes are messages a stopped group has not read yet.</div>
-  </div>
-  <ul class="plain">
-    <li>Each account always lands in the same row. That row is its partition.</li>
-    <li>Stopping <code>printer</code> does not stop the producer or the <code>audit</code> group. Its unread messages wait, and the count of them is its <b>lag</b>.</li>
-    <li>Starting it again continues from where it stopped. Nothing is lost and nothing is read twice.</li>
-  </ul>
-  <label class="done-box"><input type="checkbox" id="done-picture"> I have tried the simulator</label>
+  <p class="roll"><b>A picture to keep in your head:</b> the paper receipt roll at a checkout lane. Every order is printed on it, one line after another, and nothing is ever erased. Each department reads the roll at its own pace and keeps a bookmark. The rest of this page gives Kafka's names to the parts of that picture.</p>
+  <label class="done-box"><input type="checkbox" id="done-story"> I took inventory down in both designs</label>
 </section>
 
 <section class="step" id="setup" data-t="Start Kafka">
-  <div class="step-head"><span class="n">01</span><h2>Start Kafka</h2></div>
-  <p class="idea">A Kafka server is called a <b>broker</b>. This lab runs one broker and a web UI in Docker. Your Python scripts run on your laptop and connect to the broker at <code>localhost:9092</code>.</p>
+  <div class="step-head"><span class="n">01</span><h2>Put Kafka in the middle</h2></div>
+  <p class="ask">What is the thing in the middle, and where does it run?</p>
+  <p class="idea">A Kafka server is called a <b>broker</b>. It stores the events on disk and serves them to readers. This lab runs one broker and a web UI in Docker. Your Python scripts run on your laptop and connect to the broker at <code>localhost:9092</code>.</p>
   <p>You need Docker Desktop running and Python 3.10 or newer.</p>
-  <div class="os-switch" role="group" aria-label="Choose your operating system"><span>Show commands for</span>
+  <div class="seg" role="group" aria-label="Choose your operating system"><span>Show commands for</span>
     <button class="b" type="button" id="os-mac" data-os="mac">macOS</button>
     <button class="b" type="button" id="os-win" data-os="win">Windows</button></div>
   <p class="os-mac">Open the Terminal app. These commands also work on Linux.</p>
@@ -237,157 +256,190 @@ pip install -r requirements.txt</pre></div>
   <div class="note os-win"><b>If PowerShell says running scripts is disabled:</b> run <code>Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned</code>, then run the <code>Activate.ps1</code> line again. This only affects the current window.</div>
   <div class="note"><b>If pip fails while building confluent-kafka:</b> your Python is too new to have a prebuilt package. Create the virtual environment with an older Python such as 3.12 and install again.</div>
   <p>Open <a href="http://localhost:8080">http://localhost:8080</a>. You should see one cluster named <code>local</code>. Keep this tab open for the whole lab.</p>
+  <div class="note"><b>If that address shows something else:</b> another app on your laptop is already using port 8080. In <code>docker-compose.yml</code>, change <code>"8080:8080"</code> to <code>"8081:8080"</code>, run <code>docker compose up -d</code> again, and open port 8081.</div>
   <p>The lab uses several terminals at once. <b>In every new terminal</b>, go to the <code>kafka-session</code> folder and activate the environment first, or <code>python</code> will not find the Kafka library:</p>
   <div class="term os-mac"><div class="term-bar"><span>Every new terminal (macOS)</span></div><pre class="cmd">source .venv/bin/activate</pre></div>
   <div class="term os-win"><div class="term-bar"><span>Every new PowerShell window (Windows)</span></div><pre class="cmd">.venv\Scripts\Activate.ps1</pre></div>
+  <details class="check"><summary>Check: older Kafka tutorials start a second server called ZooKeeper. Why don't we?</summary><p>ZooKeeper used to keep track of which brokers were alive. Newer Kafka versions do that job themselves, in what is called KRaft mode. That is why <code>docker-compose.yml</code> has one Kafka container and no ZooKeeper.</p></details>
   <label class="done-box"><input type="checkbox" id="done-setup"> Kafka UI shows the cluster</label>
 </section>
 
-<section class="step" id="topic" data-t="Topics and partitions">
-  <div class="step-head"><span class="n">02</span><h2>Topics and partitions</h2></div>
-  <p class="idea">A <b>topic</b> is a named stream, like a table name. Its <b>partitions</b> are what let Kafka spread a topic across machines and let several readers share the work.</p>
-  <p>The lab created three topics for you when it started. Look at one:</p>
-  <div class="term os-mac"><div class="term-bar"><span>Terminal (macOS)</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-topics.sh \
-  --describe --topic transactions --bootstrap-server localhost:9092</pre></div>
-  <div class="term os-win"><div class="term-bar"><span>PowerShell (Windows)</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-topics.sh --describe --topic transactions --bootstrap-server localhost:9092</pre></div>
-  <div class="term out"><div class="term-bar"><span>You should see</span></div><pre>Topic: transactions   PartitionCount: 3   ReplicationFactor: 1
-    Topic: transactions   Partition: 0   Leader: 1   Replicas: 1   Isr: 1
-    Topic: transactions   Partition: 1   Leader: 1   Replicas: 1   Isr: 1
-    Topic: transactions   Partition: 2   Leader: 1   Replicas: 1   Isr: 1</pre></div>
-  <p>In Kafka UI, open <b>Topics</b>. You should see <code>transactions</code>, <code>fraud-alerts</code> and <code>fraud-reviews</code>, all empty.</p>
-  <details class="check"><summary>Check: ReplicationFactor is 1. What would a real cluster use, and why?</summary><p>Usually 3. Each partition is then copied to three brokers, so the data survives if one broker dies. We have one broker, so there is nowhere to put a second copy.</p></details>
-  <label class="done-box"><input type="checkbox" id="done-topic"> Done</label>
-</section>
-
-<section class="step" id="producer" data-t="Produce messages">
-  <div class="step-head"><span class="n">03</span><h2>Produce messages</h2></div>
-  <p class="idea">A <b>producer</b> is any program that writes to a topic. It does not know or care who will read the messages. The broker replies to each write with the partition and offset where the message was stored.</p>
+<section class="step" id="producer" data-t="Checkout produces events">
+  <div class="step-head"><span class="n">02</span><h2>Checkout produces events</h2></div>
+  <p class="ask">How does checkout hand over an order without calling anyone?</p>
+  <p class="idea">It writes an <b>event</b>: a small record that says "this happened". An event has a <b>key</b> (here the customer id), a <b>value</b> (the order as JSON) and a timestamp. A program that writes events is a <b>producer</b>. It does not know who will read them, and it does not wait for them.</p>
+  <p><code>producer.py</code> plays the checkout service and places one fake order per second.</p>
   <div class="term"><div class="term-bar"><span>Terminal A</span></div><pre class="cmd">python producer.py</pre></div>
-  <div class="term out"><div class="term-bar"><span>You should see</span></div><pre>Producing to topic 'transactions' on localhost:9092 at 1.0/s. Ctrl+C to stop.
-sent  partition=0  offset=0      ACC-1013    526.19  branch  Target
-sent  partition=1  offset=0      ACC-1030    224.63  atm     Delta
-sent  partition=1  offset=1      ACC-1005    433.21  branch  Shell</pre></div>
-  <p>Leave it running. In Kafka UI, open <b>Topics → transactions → Messages</b> and look at one message. It has a key (the account id), a value (JSON), a partition and an offset.</p>
-  <details class="check"><summary>Check: no consumer is running. Where are the messages going?</summary><p>Into the topic, on the broker's disk. Kafka stores messages whether or not anyone is reading. That is the main difference from a classic message queue.</p></details>
+  <div class="term out"><div class="term-bar"><span>You should see</span></div><pre>Producing to topic 'orders' on localhost:9092 at 1.0/s. Ctrl+C to stop.
+sent  partition=0  offset=0      CUST-1003    815.20  home         Robot Vacuum
+sent  partition=1  offset=0      CUST-1034    846.02  electronics  Laptop</pre></div>
+  <p>Leave it running. In Kafka UI, open <b>Topics → orders → Messages</b> and click one message to see its key, value, partition and offset.</p>
+  <details class="check"><summary>Check: no other service is running yet. Where are the orders going?</summary><p>Into Kafka, on the broker's disk. Kafka stores events whether or not anyone is reading. Checkout already works on its own, which is exactly what the direct-call design could not do.</p></details>
   <label class="done-box"><input type="checkbox" id="done-producer"> Done</label>
 </section>
 
-<section class="step" id="keys" data-t="Keys and ordering">
-  <div class="step-head"><span class="n">04</span><h2>Keys and ordering</h2></div>
-  <p class="idea">The producer sends each transaction with a <b>key</b>, the account id. Kafka hashes the key to choose the partition, so the same key always goes to the same partition. Order is only guaranteed inside one partition, so this is how one account's transactions stay in order.</p>
-  <p>Stop the producer with Ctrl+C and restart it faster, so accounts repeat sooner:</p>
-  <div class="term"><div class="term-bar"><span>Terminal A</span></div><pre class="cmd">python producer.py --rate 5</pre></div>
-  <p>Pick one account id and follow it for 20 seconds. For example, <code>ACC-1005</code> lands on partition 1 every time.</p>
-  <details class="check"><summary>Check: does an account's partition ever change? What would break if it did?</summary><p>It never changes while the topic has 3 partitions, because partition = hash(key) mod 3. If it changed, two transactions from one account could be read in the wrong order, and a fraud rule like "4 transactions in 2 seconds" would miss them.</p></details>
-  <p>Stop it again and go back to the normal speed for the next steps: <code>python producer.py</code></p>
-  <label class="done-box"><input type="checkbox" id="done-keys"> Done</label>
+<section class="step" id="topics" data-t="Topics">
+  <div class="step-head"><span class="n">03</span><h2>Topics: one roll per kind of event</h2></div>
+  <p class="ask">Do orders, alerts and everything else land in one big pile?</p>
+  <p class="idea">No. Events are grouped into named <b>topics</b>, one per kind of event. You choose the topics when you design the system, much like you choose the tables for a database.</p>
+  <p>This lab has three, created for you when Kafka started: <code>orders</code>, <code>fraud-alerts</code> and <code>fraud-reviews</code>. Look at one:</p>
+  <div class="term os-mac"><div class="term-bar"><span>Terminal B (macOS)</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-topics.sh \
+  --describe --topic orders --bootstrap-server localhost:9092</pre></div>
+  <div class="term os-win"><div class="term-bar"><span>Terminal B (Windows)</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-topics.sh --describe --topic orders --bootstrap-server localhost:9092</pre></div>
+  <div class="term out"><div class="term-bar"><span>You should see</span></div><pre>Topic: orders   PartitionCount: 3   ReplicationFactor: 1
+    Topic: orders   Partition: 0   Leader: 1   Replicas: 1   Isr: 1
+    Topic: orders   Partition: 1   Leader: 1   Replicas: 1   Isr: 1
+    Topic: orders   Partition: 2   Leader: 1   Replicas: 1   Isr: 1</pre></div>
+  <p>The topic is split into three <b>partitions</b>. Step 08 explains why. For now, notice that every line the producer prints has a partition number.</p>
+  <details class="check"><summary>Check: ReplicationFactor is 1. What would a real store use, and why?</summary><p>Usually 3. Each partition is then copied to three brokers, so the orders survive if one broker dies. We have one broker, so there is nowhere to put a second copy.</p></details>
+  <label class="done-box"><input type="checkbox" id="done-topics"> Done</label>
 </section>
 
-<section class="step" id="consumer" data-t="Consume messages">
-  <div class="step-head"><span class="n">05</span><h2>Consume messages</h2></div>
-  <p class="idea">A <b>consumer</b> reads from a topic. Every consumer belongs to a <b>consumer group</b>, and Kafka stores the group's position (its <b>committed offset</b>) for each partition.</p>
+<section class="step" id="consumer" data-t="Services consume">
+  <div class="step-head"><span class="n">04</span><h2>Services consume</h2></div>
+  <p class="ask">Who reads the orders, and how do they know there is a new one?</p>
+  <p class="idea">A program that reads a topic is a <b>consumer</b>. It subscribes to the topic and keeps asking the broker for anything new. Every consumer has a <b>group id</b>, which is the name of the service it belongs to.</p>
+  <p><code>consumer.py</code> stands in for a downstream service. It only prints each order, where a real one would send the email. Its default group is <code>notifications</code>.</p>
   <div class="term"><div class="term-bar"><span>Terminal B</span></div><pre class="cmd">python consumer.py</pre></div>
-  <div class="term out"><div class="term-bar"><span>You should see</span></div><pre>Group 'printer' reading topic 'transactions' on localhost:9092. Ctrl+C to stop.
-got   partition=2  offset=0      ACC-1021    234.18  atm     Uber, New York
-got   partition=1  offset=0      ACC-1030    224.63  atm     Delta, Durham
-got   partition=1  offset=1      ACC-1005    433.21  branch  Shell, Atlanta</pre></div>
-  <p>It first prints everything sent before it started, then each new transaction within a second of Terminal A sending it.</p>
+  <div class="term out"><div class="term-bar"><span>You should see</span></div><pre>Group 'notifications' reading topic 'orders' on localhost:9092. Ctrl+C to stop.
+got   partition=1  offset=0      CUST-1034    846.02  electronics  Laptop, Chapel Hill
+got   partition=0  offset=0      CUST-1003    815.20  home         Robot Vacuum, Chapel Hill</pre></div>
+  <p>It first prints the orders placed before it started, then each new one within a second of Terminal A sending it.</p>
   <details class="check"><summary>Check: the first lines jump between partitions. Is the consumer reading out of order?</summary><p>No. Inside each partition the offsets go 0, 1, 2 in order. Across partitions there is no order at all, and Kafka does not promise one.</p></details>
   <label class="done-box"><input type="checkbox" id="done-consumer"> Done</label>
 </section>
 
-<section class="step" id="groups" data-t="A second group">
-  <div class="step-head"><span class="n">06</span><h2>A second consumer group</h2></div>
-  <p class="idea">Groups are independent. Each group gets every message and keeps its own offsets. Adding a new reader needs no change to the producer or to other readers.</p>
-  <p>Leave A and B running.</p>
-  <div class="term"><div class="term-bar"><span>Terminal C</span></div><pre class="cmd">python consumer.py --group audit</pre></div>
-  <p>Terminal C prints every message too, including those sent before it started.</p>
-  <details class="check"><summary>Check: in Kafka UI, open Consumers. How many groups are there, and what is each one's lag?</summary><p>Two: <code>printer</code> and <code>audit</code>. Both show a lag of 0 or a few messages. It rarely reads exactly 0 because a consumer saves its position every 5 seconds, not after every message.</p></details>
+<section class="step" id="groups" data-t="Every service gets every order">
+  <div class="step-head"><span class="n">05</span><h2>Every service gets every order</h2></div>
+  <p class="ask">Inventory needs the same orders. Does it have to share with notifications?</p>
+  <p class="idea">No. Each <b>consumer group</b> gets every event and keeps its own bookmark, called its <b>committed offset</b>. Adding a new service needs no change to checkout or to any other service.</p>
+  <p>Leave A and B running. Start the inventory service:</p>
+  <div class="term"><div class="term-bar"><span>Terminal C</span></div><pre class="cmd">python consumer.py --group inventory</pre></div>
+  <p>Terminal C prints every order too, including those placed before it existed.</p>
+  <details class="check"><summary>Check: in Kafka UI, open Consumers. How many groups are there, and what is each one's lag?</summary><p>Two: <code>notifications</code> and <code>inventory</code>. Both show a lag of 0 or a few messages. It rarely reads exactly 0 because a consumer saves its bookmark every 5 seconds, not after every message.</p></details>
   <label class="done-box"><input type="checkbox" id="done-groups"> Done</label>
 </section>
 
-<section class="step" id="lag" data-t="Lag">
-  <div class="step-head"><span class="n">07</span><h2>Stop a consumer and watch lag</h2></div>
-  <p class="idea"><b>Lag</b> is how many messages a group has not read yet: the end of the partition minus the group's committed offset. It is the number people watch in production to see whether a consumer is keeping up.</p>
-  <p>Stop Terminal B with Ctrl+C. Leave the producer running for 30 seconds, then run:</p>
-  <div class="term os-mac"><div class="term-bar"><span>Terminal B (macOS)</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-consumer-groups.sh \
-  --describe --group printer --bootstrap-server localhost:9092</pre></div>
-  <div class="term os-win"><div class="term-bar"><span>Terminal B (Windows)</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-consumer-groups.sh --describe --group printer --bootstrap-server localhost:9092</pre></div>
-  <div class="term out"><div class="term-bar"><span>You should see something like</span></div><pre>Consumer group 'printer' has no active members.
-GROUP     TOPIC         PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG
-printer   transactions  1          7               17              10
-printer   transactions  2          8               18              10
-printer   transactions  0          12              22              10</pre></div>
-  <p>The same numbers are in Kafka UI under <b>Consumers → printer</b>. Now start the consumer again:</p>
-  <div class="term"><div class="term-bar"><span>Terminal B</span></div><pre class="cmd">python consumer.py</pre></div>
-  <p>It prints the backlog in a burst, then goes back to one message per second.</p>
-  <details class="check"><summary>Check: were any messages lost or printed twice?</summary><p>No. The group resumed from its committed offset on each partition. The messages waited in the topic the whole time.</p></details>
+<section class="step" id="lag" data-t="Inventory goes down">
+  <div class="step-head"><span class="n">06</span><h2>Inventory goes down</h2></div>
+  <p class="ask">This is the outage from the story. What happens to the orders now?</p>
+  <p class="idea">They wait in the topic. The number of events a group has not read yet is its <b>lag</b>: the end of the partition minus the group's committed offset. In production, lag is the number people watch to see whether a service is keeping up.</p>
+  <p>Stop Terminal C (inventory) with Ctrl+C. Leave checkout running for 30 seconds, then run:</p>
+  <div class="term os-mac"><div class="term-bar"><span>Terminal C (macOS)</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-consumer-groups.sh \
+  --describe --group inventory --bootstrap-server localhost:9092</pre></div>
+  <div class="term os-win"><div class="term-bar"><span>Terminal C (Windows)</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-consumer-groups.sh --describe --group inventory --bootstrap-server localhost:9092</pre></div>
+  <div class="term out"><div class="term-bar"><span>You should see something like</span></div><pre>Consumer group 'inventory' has no active members.
+GROUP      TOPIC   PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG
+inventory  orders  0          11              25              14
+inventory  orders  1          12              17              5
+inventory  orders  2          3               10              7</pre></div>
+  <p>The same numbers are in Kafka UI under <b>Consumers → inventory</b>. Look at Terminals A and B: checkout and notifications never noticed. Now bring inventory back:</p>
+  <div class="term"><div class="term-bar"><span>Terminal C</span></div><pre class="cmd">python consumer.py --group inventory</pre></div>
+  <p>It prints the backlog in a burst, then goes back to one order per second.</p>
+  <details class="check"><summary>Check: were any orders lost or handled twice?</summary><p>No. The group resumed from its committed offset on each partition. Compare that with the direct-call design, where the same outage froze checkout.</p></details>
   <label class="done-box"><input type="checkbox" id="done-lag"> Done</label>
 </section>
 
-<section class="step" id="replay" data-t="Replay">
-  <div class="step-head"><span class="n">08</span><h2>Replay from the beginning</h2></div>
-  <p class="idea">Reading does not delete. Messages stay until the topic's retention time passes (7 days by default), so a new reader can process the full history.</p>
-  <p>Use a group name Kafka has never seen:</p>
+<section class="step" id="replay" data-t="Kafka keeps the orders">
+  <div class="step-head"><span class="n">07</span><h2>Kafka keeps the orders</h2></div>
+  <p class="ask">Once every service has read an order, is it gone?</p>
+  <p class="idea">No. A classic message queue deletes a message once it is delivered. Kafka keeps every event until the topic's <b>retention</b> time passes (7 days by default), so a reader can start late, stop and resume, or read everything again.</p>
+  <p>Say the analytics team wants to study the whole day. Use a group name Kafka has never seen:</p>
   <div class="term"><div class="term-bar"><span>Terminal D</span></div><pre class="cmd">python consumer.py --group replay-1</pre></div>
-  <p>Every message since the topic was created prints again, starting at offset 0. Stop it with Ctrl+C when it catches up.</p>
-  <details class="check"><summary>Check: why did replay-1 start at offset 0 while printer resumed where it left off?</summary><p><code>printer</code> has committed offsets, so it continues from them. <code>replay-1</code> has none, so the consumer falls back to its <code>auto.offset.reset</code> setting, which <code>consumer.py</code> sets to <code>earliest</code>.</p></details>
+  <p>Every order since the topic was created prints again, starting at offset 0. Stop it with Ctrl+C when it catches up.</p>
+  <details class="check"><summary>Check: why did replay-1 start at offset 0 while inventory resumed where it left off?</summary><p><code>inventory</code> has committed offsets, so it continues from them. <code>replay-1</code> has none, so the consumer falls back to its <code>auto.offset.reset</code> setting, which <code>consumer.py</code> sets to <code>earliest</code>.</p></details>
+  <details class="check"><summary>Check: if Kafka stores everything, is it a database?</summary><p>No. You cannot ask Kafka "what is in stock right now?" or look up one customer. A database holds the current state. Kafka holds the stream of changes that led to it. Real systems use both.</p></details>
   <label class="done-box"><input type="checkbox" id="done-replay"> Done</label>
 </section>
 
-<section class="step" id="scale" data-t="Share the work">
-  <div class="step-head"><span class="n">09</span><h2>Share the work inside one group</h2></div>
-  <p class="idea">Two consumers with the <b>same</b> group id do not both get every message. Kafka gives each partition to exactly one consumer in the group. When a consumer joins or leaves, Kafka reassigns the partitions. This is called a <b>rebalance</b>, and it is how you scale a reader.</p>
-  <p>Stop Terminals B, C and D. Start the same group in two terminals:</p>
-  <div class="term"><div class="term-bar"><span>Terminal B, then again in Terminal C</span></div><pre class="cmd">python consumer.py --group team</pre></div>
-  <p>Look at the <code>partition=</code> column in each terminal. One prints two of the partitions and the other prints the third. Now stop one of them with Ctrl+C. Within a few seconds the survivor prints all three.</p>
-  <details class="check"><summary>Check: the topic has 3 partitions. What happens if you start a fourth consumer in the group?</summary><p>It gets no partition and sits idle. The number of partitions is the limit on how many consumers in one group can work at once.</p></details>
+<section class="step" id="partitions" data-t="Partitions and keys">
+  <div class="step-head"><span class="n">08</span><h2>Partitions: more checkout lanes</h2></div>
+  <p class="ask">On Black Friday, one roll of orders cannot be written and read fast enough. Now what?</p>
+  <p class="idea">Open more lanes. A topic is split into <b>partitions</b>, and each partition is its own ordered list with its own <b>offsets</b>. Kafka hashes the event's <b>key</b> to pick the partition, so the same customer always lands in the same one. Order is only guaranteed inside a partition, so this keeps one customer's orders in order.</p>
+  <p>Try it here first. Send orders from different customers and watch where they land. Then stop a group and send more.</p>
+  <div class="sim" aria-label="Topic simulator">
+    <h3>Topic: orders (3 partitions)</h3>
+    <div id="parts"></div>
+    <div class="controls"><span>Order from</span><span id="acctBtns"></span>
+      <button class="b" type="button" id="send5">Send 5 random</button><button class="b" type="button" id="reset">Reset</button></div>
+    <div class="tablewrap"><table class="groups"><thead><tr><th>Consumer group</th><th>Status</th><th>Read / stored (p0, p1, p2)</th><th>Lag</th><th></th></tr></thead><tbody id="simGroups"></tbody></table></div>
+    <div class="sim-msg" id="simMsg">Dashed boxes are orders a stopped group has not read yet.</div>
+  </div>
+  <p>Now on the real thing. Stop the producer in Terminal A with Ctrl+C and restart it faster, so customers come back sooner. Leave it at this speed for the rest of the lab.</p>
+  <div class="term"><div class="term-bar"><span>Terminal A</span></div><pre class="cmd">python producer.py --rate 5</pre></div>
+  <p>Pick one customer id and follow it for 20 seconds. For example, <code>CUST-1004</code> lands on partition 1 every time.</p>
+  <details class="check"><summary>Check: does a customer's partition ever change? What would break if it did?</summary><p>It never changes while the topic has 3 partitions, because partition = hash(key) mod 3. If it changed, two orders from one customer could be read in the wrong order, and a fraud rule like "4 orders in 2 seconds" would miss them.</p></details>
+  <label class="done-box"><input type="checkbox" id="done-partitions"> Done</label>
+</section>
+
+<section class="step" id="scale" data-t="Add helpers">
+  <div class="step-head"><span class="n">09</span><h2>Add helpers to a busy service</h2></div>
+  <p class="ask">Orders now arrive on three lanes at once. How does one inventory service keep up?</p>
+  <p class="idea">Start more copies of it with the <b>same</b> group id. Kafka gives each partition to exactly one consumer in the group, so the copies split the work without ever handling the same order twice. When a copy joins or leaves, Kafka reassigns the partitions. That is called a <b>rebalance</b>.</p>
+  <p>Terminal C is still running inventory. Stop Terminals B and D, then start a second inventory worker in Terminal B:</p>
+  <div class="term"><div class="term-bar"><span>Terminal B</span></div><pre class="cmd">python consumer.py --group inventory</pre></div>
+  <p>Look at the <code>partition=</code> column in Terminals B and C. One prints two of the partitions and the other prints the third. Now stop one of them with Ctrl+C. Within a few seconds the survivor prints all three.</p>
+  <details class="check"><summary>Check: the topic has 3 partitions. What happens if you start a fourth inventory worker?</summary><p>It gets no partition and sits idle. The number of partitions is the limit on how many consumers in one group can work at once.</p></details>
   <label class="done-box"><input type="checkbox" id="done-scale"> Done</label>
 </section>
 
-<section class="step" id="pipeline" data-t="Build a pipeline">
-  <div class="step-head"><span class="n">10</span><h2>Build a pipeline</h2></div>
-  <p class="idea">A program can be a consumer and a producer at once: read from one topic, do some work, write to another. Chaining these is how streaming pipelines are built. Topics are the connections between the stages.</p>
-  <div class="diagram"><pre>producer.py ──> [transactions] ──> fraud_detector.py ──> [fraud-alerts]
-                      │                                        │
-                      └──────────> dashboard.py <──────────────┘</pre></div>
-  <p>Stop the extra consumers. Restart the producer faster, then start the detector and the dashboard:</p>
-  <div class="term"><div class="term-bar"><span>Terminal A</span></div><pre class="cmd">python producer.py --rate 5</pre></div>
+<section class="step" id="pipeline" data-t="Chain reactions">
+  <div class="step-head"><span class="n">10</span><h2>Chain reactions: fraud alerts and a live sales board</h2></div>
+  <p class="ask">What if reacting to one event should create another event?</p>
+  <p class="idea">A program can be a consumer and a producer at once: read from one topic, do some work, write to another. Chaining these is how streaming pipelines are built. A consumer can also keep running totals over the stream, which is how real-time dashboards work.</p>
+  <div class="diagram"><pre>producer.py ──> [orders] ──> fraud_detector.py ──> [fraud-alerts]
+                    │                                    │
+                    └────────> dashboard.py <────────────┘</pre></div>
+  <p>Stop the inventory workers. Keep the producer running at 5 orders per second.</p>
   <div class="term"><div class="term-bar"><span>Terminal B</span></div><pre class="cmd">python fraud_detector.py</pre></div>
   <div class="term"><div class="term-bar"><span>Terminal C</span></div><pre class="cmd">python dashboard.py</pre></div>
-  <div class="term out"><div class="term-bar"><span>Terminal B should show</span></div><pre>Reading 'transactions', writing alerts to 'fraud-alerts'. Ctrl+C to stop.
-ALERT VELOCITY               ACC-1046    611.24  Cosmic Cantina, Atlanta
-ALERT LARGE_AMOUNT           ACC-1014   4440.74  Delta, Raleigh</pre></div>
-  <p>The detector has two rules: one transaction of 3000 or more, or 4 transactions from one account within 2 seconds. In Kafka UI, open the <code>fraud-alerts</code> topic and read a message.</p>
-  <details class="check"><summary>Check: the detector keeps each account's recent history in memory. If you ran two detectors in the same group, could one account be split between them?</summary><p>No. The key sends an account to one partition (step 04), and a partition belongs to one consumer in the group (step 09). So each account is seen by exactly one detector.</p></details>
-  <details class="check"><summary>Check: stop and restart dashboard.py. Its totals come back. From where?</summary><p>From Kafka. The dashboard never commits offsets, so on every start it reads both topics from the beginning and rebuilds its totals. The topic is the source of truth, and the totals are just a view of it.</p></details>
+  <div class="term out"><div class="term-bar"><span>Terminal B should show</span></div><pre>Reading 'orders', writing alerts to 'fraud-alerts'. Ctrl+C to stop.
+ALERT LARGE_ORDER           CUST-1038   6012.77  Robot Vacuum, New York
+ALERT VELOCITY              CUST-1020    688.36  Robot Vacuum, Raleigh</pre></div>
+  <div class="term out"><div class="term-bar"><span>Terminal C should show</span></div><pre>BLACK FRIDAY SALES  orders=506  revenue=$256,101.39
+
+By category
+  electronics  $   93,078.00
+  toys         $   63,425.20
+  fashion      $   53,132.26
+  home         $   46,465.93</pre></div>
+  <p>The detector has two rules: one order of 3000 or more, or 4 orders from one customer within 2 seconds. In Kafka UI, open the <code>fraud-alerts</code> topic and read a message.</p>
+  <details class="check"><summary>Check: the detector keeps each customer's recent orders in memory. If you ran two detectors in the same group, could one customer be split between them?</summary><p>No. The key sends a customer to one partition (step 08), and a partition belongs to one consumer in the group (step 09). So each customer is seen by exactly one detector.</p></details>
+  <details class="check"><summary>Check: stop and restart dashboard.py. Its totals come back. From where?</summary><p>From Kafka. The dashboard never commits offsets, so on every start it reads both topics from the beginning and rebuilds its totals (step 07). The topic is the source of truth, and the totals are just a view of it.</p></details>
   <label class="done-box"><input type="checkbox" id="done-pipeline"> Done</label>
 </section>
 
 <section class="step" id="agent" data-t="Add an AI agent">
   <div class="step-head"><span class="n">11</span><h2>Add an AI agent (optional)</h2></div>
-  <p class="idea">An AI agent fits into Kafka like any other program. It is one more consumer group that reads a topic and writes to another.</p>
+  <p class="ask">Where would an AI agent plug into this?</p>
+  <p class="idea">The same way as every other service. It is one more consumer group that reads a topic and writes to another.</p>
   <p>Open <code>.env</code> in your editor and set <code>ANTHROPIC_API_KEY</code> to your key. Then:</p>
   <div class="term"><div class="term-bar"><span>Terminal D</span></div><pre class="cmd">python agent_consumer.py</pre></div>
   <p>For each new alert, the agent asks Claude for a two-sentence review and writes it to <code>fraud-reviews</code>. Open that topic in Kafka UI.</p>
   <div class="note"><b>If the key is blank:</b> the agent starts normally, then stops with an authentication error on the first alert. Never paste your key into a chat or commit <code>.env</code>.</div>
-  <details class="check"><summary>Check: what had to change in Kafka, the producer or the detector to add the agent?</summary><p>Nothing. The agent only needed the name of the topic to read. If you stop it for a minute and restart it, the alerts from that minute are still in the topic and it reviews them then.</p></details>
+  <details class="check"><summary>Check: what had to change in Kafka, checkout or the detector to add the agent?</summary><p>Nothing. The agent only needed the name of the topic to read. If you stop it for a minute and restart it, the alerts from that minute are still in the topic and it reviews them then.</p></details>
   <label class="done-box"><input type="checkbox" id="done-agent"> Done</label>
 </section>
 
 <section class="step" id="cleanup" data-t="Clean up">
-  <div class="step-head"><span class="n">12</span><h2>Clean up</h2></div>
+  <div class="step-head"><span class="n">12</span><h2>Clean up and recap</h2></div>
   <p>Stop every script with Ctrl+C, then remove the containers and their data:</p>
   <div class="term"><div class="term-bar"><span>Terminal</span></div><pre class="cmd">docker compose --profile apps down -v</pre></div>
-  <h3>What you covered</h3>
-  <ul class="plain">
-    <li><b>Topic, partition, offset:</b> where messages live and how they are numbered.</li>
-    <li><b>Producer and key:</b> the key picks the partition, which keeps one account in order.</li>
-    <li><b>Consumer group and committed offset:</b> each group reads everything at its own pace.</li>
-    <li><b>Lag and replay:</b> unread messages wait, and old messages can be read again.</li>
-    <li><b>Rebalance:</b> consumers in one group split the partitions between them.</li>
-    <li><b>Consume, process, produce:</b> topics connect the stages of a pipeline.</li>
-  </ul>
+  <h3>The questions you answered</h3>
+  <div class="tablewrap"><table class="recap">
+    <thead><tr><th>Question</th><th>Kafka's answer</th></tr></thead>
+    <tbody>
+      <tr><td>How do services stop depending on each other?</td><td>A <b>broker</b> in the middle stores <b>events</b></td></tr>
+      <tr><td>Who writes, and who reads?</td><td><b>Producers</b> write, <b>consumers</b> read, and neither knows the other</td></tr>
+      <tr><td>How are events organized?</td><td>Into <b>topics</b>, one per kind of event</td></tr>
+      <tr><td>How do several services read the same events?</td><td>Each <b>consumer group</b> keeps its own <b>committed offset</b></td></tr>
+      <tr><td>What happens when a service is down?</td><td>Its <b>lag</b> grows, then it catches up</td></tr>
+      <tr><td>Are events deleted after reading?</td><td>No, they stay for the <b>retention</b> time and can be replayed</td></tr>
+      <tr><td>How does it handle Black Friday volume?</td><td><b>Partitions</b>, with the <b>key</b> keeping each customer in order</td></tr>
+      <tr><td>How does one service go faster?</td><td>More consumers in the same group, and a <b>rebalance</b></td></tr>
+      <tr><td>How do events trigger more events?</td><td>Consume, process, produce</td></tr>
+    </tbody></table></div>
+  <p>The story-first order of this page follows <a href="https://www.youtube.com/watch?v=QkdkLdMBuL0">Kafka Tutorial for Beginners</a> by TechWorld with Nana. Watch it afterwards for a second explanation of the same ideas.</p>
   <label class="done-box"><input type="checkbox" id="done-cleanup"> Done</label>
 </section>
 
@@ -397,19 +449,19 @@ ALERT LARGE_AMOUNT           ACC-1014   4440.74  Delta, Raleigh</pre></div>
 
 <script>
 (function () {
+  function $(id) { return document.getElementById(id); }
+
   // ---- Step rail and progress (remembered in this browser only) ----
   var steps = [].slice.call(document.querySelectorAll('section.step'));
-  var rail = document.getElementById('rail');
-  var KEY = 'kafka-lab-done';
-  var done = {};
+  var KEY = 'kafka-lab-done-v2', done = {};
   try { done = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { done = {}; }
-  steps.forEach(function (s, i) {
+  steps.forEach(function (s) {
     var li = document.createElement('li'), a = document.createElement('a');
     a.href = '#' + s.id; a.id = 'rail-' + s.id;
     a.innerHTML = '<span class="n"></span><span></span>';
     a.lastChild.textContent = s.dataset.t;
-    li.appendChild(a); rail.appendChild(li);
-    var box = document.getElementById('done-' + s.id);
+    li.appendChild(a); $('rail').appendChild(li);
+    var box = $('done-' + s.id);
     box.checked = !!done[s.id];
     box.addEventListener('change', function () {
       done[s.id] = box.checked;
@@ -420,44 +472,44 @@ ALERT LARGE_AMOUNT           ACC-1014   4440.74  Delta, Raleigh</pre></div>
   function paint() {
     var n = 0;
     steps.forEach(function (s, i) {
-      var a = document.getElementById('rail-' + s.id), d = !!done[s.id];
+      var a = $('rail-' + s.id), d = !!done[s.id];
       if (d) n++;
       a.classList.toggle('done', d);
       a.firstChild.textContent = d ? '✓' : ('0' + i).slice(-2);
     });
-    document.getElementById('count').textContent = n + ' of ' + steps.length + ' done';
-    document.getElementById('bar').style.width = (100 * n / steps.length) + '%';
+    $('count').textContent = n + ' of ' + steps.length + ' done';
+    $('bar').style.width = (100 * n / steps.length) + '%';
   }
   paint();
 
-  // ---- Light / dark toggle (follows the system setting until you choose) ----
-  var root = document.documentElement, tb = document.getElementById('themeToggle');
-  function isDark() {
-    var t = root.getAttribute('data-theme');
-    return t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
-  }
-  function label() { tb.textContent = isDark() ? 'Light mode' : 'Dark mode'; }
-  tb.addEventListener('click', function () {
-    var next = isDark() ? 'light' : 'dark';
-    root.setAttribute('data-theme', next);
-    try { localStorage.setItem('kafka-lab-theme', next); } catch (e) {}
+  // ---- Light / dark toggle (GitHub page only; follows the system setting until you choose) ----
+  var root = document.documentElement, tb = $('themeToggle');
+  if (tb) {
+    var isDark = function () {
+      var t = root.getAttribute('data-theme');
+      return t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    };
+    var label = function () { tb.textContent = isDark() ? 'Light mode' : 'Dark mode'; };
+    tb.addEventListener('click', function () {
+      var next = isDark() ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('kafka-lab-theme', next); } catch (e) {}
+      label();
+    });
+    try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', label); } catch (e) {}
     label();
-  });
-  try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', label); } catch (e) {}
-  label();
+  }
 
   // ---- macOS / Windows switch (macOS by default; Windows laptops are detected) ----
-  var osRoot = document.documentElement, osKey = 'kafka-lab-os', os = null;
+  var osKey = 'kafka-lab-os', os = null;
   try { os = localStorage.getItem(osKey); } catch (e) {}
   if (os !== 'mac' && os !== 'win') os = /Windows/i.test(navigator.userAgent) ? 'win' : 'mac';
   function setOs(v) {
-    os = v; osRoot.setAttribute('data-os', v);
-    ['mac', 'win'].forEach(function (k) { document.getElementById('os-' + k).setAttribute('aria-pressed', String(k === v)); });
+    root.setAttribute('data-os', v);
+    ['mac', 'win'].forEach(function (k) { $('os-' + k).setAttribute('aria-pressed', String(k === v)); });
   }
   ['mac', 'win'].forEach(function (k) {
-    document.getElementById('os-' + k).addEventListener('click', function () {
-      setOs(k); try { localStorage.setItem(osKey, k); } catch (e) {}
-    });
+    $('os-' + k).addEventListener('click', function () { setOs(k); try { localStorage.setItem(osKey, k); } catch (e) {} });
   });
   setOs(os);
 
@@ -466,42 +518,42 @@ ALERT LARGE_AMOUNT           ACC-1014   4440.74  Delta, Raleigh</pre></div>
     var b = document.createElement('button');
     b.className = 'copy'; b.type = 'button'; b.textContent = 'Copy';
     b.addEventListener('click', function () {
-      var text = pre.textContent;
       function ok() { b.textContent = 'Copied'; setTimeout(function () { b.textContent = 'Copy'; }, 1500); }
       function fallback() { var r = document.createRange(); r.selectNodeContents(pre); var s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = 'Selected'; }
-      try { navigator.clipboard.writeText(text).then(ok, fallback); } catch (e) { fallback(); }
+      try { navigator.clipboard.writeText(pre.textContent).then(ok, fallback); } catch (e) { fallback(); }
     });
     pre.parentNode.querySelector('.term-bar').appendChild(b);
   });
 
-  // ---- Topic simulator ----
-  // Real key -> partition mapping observed for these accounts on a 3-partition topic.
-  var MAP = { 'ACC-1001': 0, 'ACC-1002': 2, 'ACC-1003': 1, 'ACC-1004': 2, 'ACC-1005': 1 };
-  var ACCTS = Object.keys(MAP), COLORS = ['var(--p0)', 'var(--p1)', 'var(--p2)'];
+  // Real key -> partition results for these customers on a 3-partition topic (CRC32 of the key, mod 3).
+  var MAP = { 'CUST-1001': 0, 'CUST-1004': 1, 'CUST-1008': 2, 'CUST-1009': 1, 'CUST-1011': 2 };
+  var CUSTS = Object.keys(MAP), COLORS = ['var(--p0)', 'var(--p1)', 'var(--p2)'];
+  function anyCust() { return CUSTS[Math.floor(Math.random() * CUSTS.length)]; }
+
+  // ---- Topic simulator (step 08) ----
   var parts, groups, last;
+  function simSay(t) { $('simMsg').textContent = t; }
   function reset() {
     parts = [[], [], []]; last = null;
-    groups = [{ name: 'printer', on: true, off: [0, 0, 0] }, { name: 'audit', on: true, off: [0, 0, 0] }];
-    ['ACC-1005', 'ACC-1003', 'ACC-1001', 'ACC-1004', 'ACC-1005', 'ACC-1002', 'ACC-1001', 'ACC-1003'].forEach(function (a) { send(a, true); });
-    say('Dashed boxes are messages a stopped group has not read yet.');
+    groups = [{ name: 'notifications', on: true, off: [0, 0, 0] }, { name: 'inventory', on: true, off: [0, 0, 0] }];
+    ['CUST-1004', 'CUST-1001', 'CUST-1008', 'CUST-1009', 'CUST-1004', 'CUST-1011', 'CUST-1001', 'CUST-1008'].forEach(function (a) { send(a, true); });
+    simSay('Dashed boxes are orders a stopped group has not read yet.');
   }
-  function send(acct, quiet) {
-    var p = MAP[acct]; parts[p].push(acct); last = acct;
+  function send(cust, quiet) {
+    var p = MAP[cust]; parts[p].push(cust); last = cust;
     groups.forEach(function (g) { if (g.on) g.off = parts.map(function (x) { return x.length; }); });
-    if (!quiet) say(acct + ' → partition ' + p + ', offset ' + (parts[p].length - 1));
+    if (!quiet) simSay(cust + ' → partition ' + p + ', offset ' + (parts[p].length - 1));
   }
   function lag(g) { return parts.reduce(function (s, x, i) { return s + x.length - g.off[i]; }, 0); }
-  function say(t) { document.getElementById('simMsg').textContent = t; }
   function render() {
-    var printer = groups[0];
-    document.getElementById('parts').innerHTML = parts.map(function (msgs, p) {
+    $('parts').innerHTML = parts.map(function (msgs, p) {
       return '<div class="sim-row"><span class="lab" style="color:' + COLORS[p] + '">partition ' + p + '</span><div class="cells" style="color:' + COLORS[p] + '">' +
         msgs.map(function (a, o) {
-          var cls = 'cell' + (a === last ? ' hit' : '') + (o >= printer.off[p] ? ' unread' : '');
-          return '<span class="' + cls + '">' + o + '<b>' + a.slice(4) + '</b></span>';
+          var unread = groups.some(function (g) { return o >= g.off[p]; });
+          return '<span class="cell' + (a === last ? ' hit' : '') + (unread ? ' unread' : '') + '">' + o + '<b>' + a.slice(5) + '</b></span>';
         }).join('') + '</div></div>';
     }).join('');
-    document.getElementById('groups').innerHTML = groups.map(function (g, i) {
+    $('simGroups').innerHTML = groups.map(function (g, i) {
       var l = lag(g);
       return '<tr><td class="mono">' + g.name + '</td><td><span class="pill' + (g.on ? '' : ' stopped') + '">' + (g.on ? 'running' : 'stopped') + '</span></td>' +
         '<td class="mono">' + parts.map(function (x, p) { return g.off[p] + '/' + x.length; }).join('  ') + '</td>' +
@@ -510,33 +562,42 @@ ALERT LARGE_AMOUNT           ACC-1014   4440.74  Delta, Raleigh</pre></div>
     }).join('');
     [].forEach.call(document.querySelectorAll('.cells'), function (c) { c.scrollLeft = c.scrollWidth; });
   }
-  document.getElementById('acctBtns').innerHTML = ACCTS.map(function (a) { return '<button class="b primary" type="button" data-a="' + a + '">' + a + '</button>'; }).join(' ');
-  document.getElementById('acctBtns').addEventListener('click', function (e) {
-    var a = e.target.getAttribute('data-a'); if (a) { send(a); render(); }
+  $('acctBtns').innerHTML = CUSTS.map(function (a) { return '<button class="b primary" type="button" data-a="' + a + '">' + a + '</button>'; }).join(' ');
+  $('acctBtns').addEventListener('click', function (e) { var a = e.target.getAttribute('data-a'); if (a) { send(a); render(); } });
+  $('send5').addEventListener('click', function () {
+    for (var i = 0; i < 5; i++) send(anyCust(), true);
+    simSay('Sent 5 orders from random customers.'); render();
   });
-  document.getElementById('send5').addEventListener('click', function () {
-    for (var i = 0; i < 5; i++) send(ACCTS[Math.floor(Math.random() * ACCTS.length)], true);
-    say('Sent 5 transactions from random accounts.'); render();
-  });
-  document.getElementById('reset').addEventListener('click', function () { reset(); render(); });
-  document.getElementById('groups').addEventListener('click', function (e) {
+  $('reset').addEventListener('click', function () { reset(); render(); });
+  $('simGroups').addEventListener('click', function (e) {
     var i = e.target.getAttribute('data-g'); if (i === null) return;
     var g = groups[+i];
-    if (g.on) { g.on = false; say(g.name + ' stopped. Send more transactions and watch its lag grow.'); }
-    else { var l = lag(g); g.on = true; g.off = parts.map(function (x) { return x.length; }); say(g.name + ' restarted and caught up on ' + l + ' message' + (l === 1 ? '' : 's') + ' from its committed offsets.'); }
+    if (g.on) { g.on = false; simSay(g.name + ' stopped. Send more orders and watch its lag grow.'); }
+    else { var l = lag(g); g.on = true; g.off = parts.map(function (x) { return x.length; }); simSay(g.name + ' restarted and caught up on ' + l + ' order' + (l === 1 ? '' : 's') + ' from its committed offsets.'); }
     render();
   });
   reset(); render();
 
-  // ---- Animated flow: producer -> partitions -> consumer groups -> alerts ----
-  var NS = 'http://www.w3.org/2000/svg', layer = document.getElementById('flowDots'), fbtn = document.getElementById('flowBtn');
-  var LANE = [80, 140, 200], dots = [], playing = false, lastT = 0, since = 0, SPEED = 110; // SVG units per second
-  var nPrinter = 0, nDetector = 0, nAlerts = 0;
+  // ---- Animated flow (step 00): the same store, with direct calls or with Kafka ----
+  var NS = 'http://www.w3.org/2000/svg', layer = $('flowDots');
+  var LANE = [85, 145, 205], GROUP_Y = [55, 145, 235], SPEED = 120;   // SVG units per second
+  var mode = 'direct', invDown = false, dots = [], playing = false, lastT = 0, since = 0, c;
+  function flowSay(t) { $('flowMsg').textContent = t; }
+  function txt(id, t) { $(id).textContent = t; }
+  function counts() {
+    txt('dDone', c.done + ' done' + (c.wait ? ', ' + c.wait + ' waiting' : ''));
+    txt('dWait', invDown ? c.wait + ' orders stuck here' : 'updates stock');
+    txt('kDone', c.done + ' orders placed');
+    txt('kNotif', 'read ' + c.notif);
+    txt('kInv', invDown ? 'down, lag ' + c.lag : 'read ' + c.inv);
+    txt('kFraud', 'read ' + c.fraud);
+    txt('kAlerts', c.alerts + (c.alerts === 1 ? ' alert' : ' alerts'));
+  }
   function mk(path, color, tag, ring, onEnd) {
-    var g = document.createElementNS(NS, 'g'), c = document.createElementNS(NS, 'circle');
-    c.setAttribute('r', 6); c.setAttribute('fill', color);
-    if (ring) { c.setAttribute('stroke', 'var(--warn)'); c.setAttribute('stroke-width', 3); }
-    g.appendChild(c);
+    var g = document.createElementNS(NS, 'g'), ci = document.createElementNS(NS, 'circle');
+    ci.setAttribute('r', 6); ci.setAttribute('fill', color);
+    if (ring) { ci.setAttribute('stroke', 'var(--warn)'); ci.setAttribute('stroke-width', 3); }
+    g.appendChild(ci);
     if (tag) { var t = document.createElementNS(NS, 'text'); t.textContent = tag; t.setAttribute('y', -9); t.setAttribute('text-anchor', 'middle'); t.setAttribute('class', 'flow-tag'); g.appendChild(t); }
     layer.appendChild(g);
     var d = { g: g, path: path, seg: 0, d: 0, onEnd: onEnd };
@@ -553,27 +614,65 @@ ALERT LARGE_AMOUNT           ACC-1014   4440.74  Delta, Raleigh</pre></div>
       var L = place(d);
       if (d.d < L) return true;
       d.d -= L; d.seg++;
-      if (d.seg >= d.path.length - 1) { d.g.parentNode.removeChild(d.g); if (d.onEnd) d.onEnd(); return false; }
+      if (d.seg >= d.path.length - 1) { layer.removeChild(d.g); if (d.onEnd) d.onEnd(); return false; }
     }
   }
   function advance(dist) {
     var cur = dots; dots = [];   // dots created by onEnd land in the new list
     cur.forEach(function (d) { if (move(d, dist)) dots.push(d); });
   }
-  function counts() {
-    document.getElementById('flowPrinter').textContent = 'read ' + nPrinter;
-    document.getElementById('flowDetector').textContent = 'read ' + nDetector;
-    document.getElementById('flowAlerts').textContent = nAlerts + (nAlerts === 1 ? ' alert' : ' alerts');
-  }
   function emit() {
-    var a = ACCTS[Math.floor(Math.random() * ACCTS.length)], p = MAP[a], y = LANE[p], col = COLORS[p], large = Math.random() < 0.2;
-    mk([[120, 140], [200, y], [425, y]], col, a.slice(4), large, function () {
-      mk([[425, y], [520, 75]], col, null, large, function () { nPrinter++; counts(); });
-      mk([[425, y], [520, 195]], col, null, large, function () {
-        nDetector++; counts();
-        if (large) mk([[650, 195], [718, 195]], 'var(--warn)', null, false, function () { nAlerts++; counts(); });
+    var cust = anyCust(), tag = cust.slice(5), large = Math.random() < 0.2;
+    if (mode === 'direct') {
+      // Checkout -> notifications -> inventory -> fraud check. The order is only done at the end.
+      mk([[130, 145], [250, 145]], 'var(--accent)', tag, large, function () {
+        mk([[380, 145], [470, 145]], 'var(--accent)', tag, large, function () {
+          if (invDown) { c.wait++; counts(); return; }
+          mk([[600, 145], [690, 145]], 'var(--accent)', tag, large, function () { c.done++; counts(); });
+        });
+      });
+      return;
+    }
+    // With Kafka: the order is placed as soon as it is written to its partition.
+    var p = MAP[cust], y = LANE[p], col = COLORS[p];
+    mk([[120, 145], [230, y]], col, tag, large, function () {
+      c.done++; counts();
+      mk([[230, y], [425, y]], col, tag, large, function () {
+        mk([[425, y], [470, 145], [520, GROUP_Y[0]]], col, null, large, function () { c.notif++; counts(); });
+        if (invDown) { c.lag++; counts(); }
+        else mk([[425, y], [470, 145], [520, GROUP_Y[1]]], col, null, large, function () { c.inv++; counts(); });
+        mk([[425, y], [470, 145], [520, GROUP_Y[2]]], col, null, large, function () {
+          c.fraud++; counts();
+          if (large) mk([[660, 235], [728, 235]], 'var(--warn)', null, false, function () { c.alerts++; counts(); });
+        });
       });
     });
+  }
+  function setInv(down, quiet) {
+    if (!down && invDown && !quiet) {
+      if (mode === 'direct') { flowSay('Inventory is back. ' + c.wait + ' stuck orders finally go through. Those customers waited the whole time.'); c.done += c.wait; c.wait = 0; }
+      else { flowSay('Inventory is back and caught up on ' + c.lag + ' orders from its bookmark. Checkout never slowed down.'); c.inv += c.lag; c.lag = 0; }
+    }
+    if (down) flowSay(mode === 'direct'
+      ? 'Inventory is down. Every order now gets stuck there, and checkout cannot finish any of them.'
+      : 'Inventory is down. Orders still reach the other services. Inventory\'s unread orders wait in the topic.');
+    invDown = down;
+    $('flowInvD').classList.toggle('down', down); $('flowInvK').classList.toggle('down', down);
+    $('invBtn').textContent = down ? 'Bring inventory back' : 'Take inventory down';
+    counts();
+  }
+  function setMode(m) {
+    mode = m; dots = []; since = 0;
+    while (layer.firstChild) layer.removeChild(layer.firstChild);
+    c = { done: 0, wait: 0, notif: 0, inv: 0, fraud: 0, lag: 0, alerts: 0 };
+    $('flowD').setAttribute('display', m === 'direct' ? 'inline' : 'none');
+    $('flowK').setAttribute('display', m === 'kafka' ? 'inline' : 'none');
+    $('modeDirect').setAttribute('aria-pressed', String(m === 'direct'));
+    $('modeKafka').setAttribute('aria-pressed', String(m === 'kafka'));
+    setInv(false, true);
+    flowSay(m === 'direct' ? 'Each dot is one order, labelled with its customer number. An order is done only after all three services answer.'
+                           : 'Each dot is one order. The customer number picks the partition. Dots with an orange ring are large orders.');
+    for (var k = 0; k < 4; k++) { emit(); advance(110); }   // a filled first frame, also shown when motion is reduced
   }
   function frame(t) {
     if (!playing) return;
@@ -583,11 +682,14 @@ ALERT LARGE_AMOUNT           ACC-1014   4440.74  Delta, Raleigh</pre></div>
     requestAnimationFrame(frame);
   }
   function setPlaying(on) {
-    playing = on; fbtn.textContent = on ? 'Pause' : 'Play';
+    playing = on; $('flowBtn').textContent = on ? 'Pause' : 'Play';
     if (on) { lastT = performance.now(); requestAnimationFrame(frame); }
   }
-  fbtn.addEventListener('click', function () { setPlaying(!playing); });
-  for (var k = 0; k < 4; k++) { emit(); advance(100); }   // a filled first frame, also shown when motion is reduced
+  $('flowBtn').addEventListener('click', function () { setPlaying(!playing); });
+  $('invBtn').addEventListener('click', function () { setInv(!invDown); });
+  $('modeDirect').addEventListener('click', function () { setMode('direct'); });
+  $('modeKafka').addEventListener('click', function () { setMode('kafka'); });
+  setMode('direct');
   var calm = false; try { calm = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
   setPlaying(!calm);
 })();

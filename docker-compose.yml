@@ -41,7 +41,7 @@ services:
         until $$K --bootstrap-server kafka:29092 --list >/dev/null 2>&1; do
           echo "waiting for kafka..."; sleep 2
         done
-        for t in transactions fraud-alerts fraud-reviews; do
+        for t in orders fraud-alerts fraud-reviews; do
           $$K --bootstrap-server kafka:29092 --create --if-not-exists --topic $$t --partitions 3
         done
         echo "topics ready"

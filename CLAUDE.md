@@ -1,6 +1,6 @@
 # Context for AI assistants
 
-This repo is a teaching lab for an introductory Kafka session in a graduate data engineering course. Students are new to Kafka.
+This repo is a teaching lab for an introductory Kafka session in a graduate data engineering course. Students are new to Kafka. The story is an online store on Black Friday: checkout publishes orders, and other services react to them.
 
 ## How the lab is wired
 
@@ -8,16 +8,17 @@ This repo is a teaching lab for an introductory Kafka session in a graduate data
 - `docker compose --profile apps up -d --build` also runs `producer.py` and `fraud_detector.py` as containers.
 - From the host, the broker is at `localhost:9092`. From inside the Docker network, it is at `kafka:29092`.
 - Python scripts use `confluent-kafka` and read settings from `.env` through `python-dotenv`.
-- Settings: `KAFKA_BOOTSTRAP_SERVERS`, `KAFKA_TOPIC` (`transactions`), `KAFKA_ALERTS_TOPIC` (`fraud-alerts`), `KAFKA_REVIEWS_TOPIC` (`fraud-reviews`), `KAFKA_GROUP_ID` (`printer`), `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`.
-- All three topics have 3 partitions. The message key is always `account_id`.
+- Settings: `KAFKA_BOOTSTRAP_SERVERS`, `KAFKA_TOPIC` (`orders`), `KAFKA_ALERTS_TOPIC` (`fraud-alerts`), `KAFKA_REVIEWS_TOPIC` (`fraud-reviews`), `KAFKA_GROUP_ID` (`notifications`), `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`.
+- All three topics have 3 partitions. The message key is always `customer_id`.
 
 ## Data flow
 
-- `producer.py` writes transactions to `transactions`. JSON fields: `txn_id`, `account_id`, `amount`, `currency`, `channel`, `merchant`, `city`, `timestamp`.
-- `fraud_detector.py` (group `fraud-detector`) reads `transactions` and writes alerts to `fraud-alerts`. JSON fields: `reasons` (list of `LARGE_AMOUNT`, `VELOCITY`), `transaction`.
+- `producer.py` plays the checkout service and writes orders to `orders`. JSON fields: `order_id`, `customer_id`, `amount`, `currency`, `category`, `product`, `city`, `timestamp`.
+- `fraud_detector.py` (group `fraud-detector`) reads `orders` and writes alerts to `fraud-alerts`. JSON fields: `reasons` (list of `LARGE_ORDER`, `VELOCITY`), `order`.
 - `dashboard.py` (group `dashboard`) reads both topics and keeps totals in memory.
 - `agent_consumer.py` (group `fraud-agent`) reads `fraud-alerts`, calls Claude, writes to `fraud-reviews`. JSON fields: `alert`, `review`, `model`.
-- `consumer.py` prints `transactions`; `--group` sets the group id.
+- `consumer.py` stands in for a downstream service and prints `orders`; `--group` sets the group id (default `notifications`, the lab also uses `inventory`).
+- The student walkthrough is `docs/index.html`, served by GitHub Pages. Keep it in step with the scripts.
 
 ## Rules
 

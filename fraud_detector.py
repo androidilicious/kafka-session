@@ -1,11 +1,12 @@
-"""Read transactions, apply two fraud rules, write alerts to a second topic.
+"""Read orders, apply two fraud rules, write alerts to a second topic.
 
 This is the consume, process, produce pattern: one program is a consumer
-of `transactions` and a producer to `fraud-alerts` at the same time.
+of `orders` and a producer to `fraud-alerts` at the same time. One event
+(an order) sets off the next one (an alert).
 
 Rules:
-  LARGE_AMOUNT  one transaction of 3000 or more
-  VELOCITY      4 or more transactions from one account within 2 seconds
+  LARGE_ORDER  one order of 3000 or more
+  VELOCITY     4 or more orders from one customer within 2 seconds
 
 Run:  python fraud_detector.py
 Stop: Ctrl+C
@@ -22,27 +23,27 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-TOPIC = os.getenv("KAFKA_TOPIC", "transactions")
+TOPIC = os.getenv("KAFKA_TOPIC", "orders")
 ALERTS_TOPIC = os.getenv("KAFKA_ALERTS_TOPIC", "fraud-alerts")
 
-LARGE_AMOUNT = 3000
+LARGE_ORDER = 3000
 VELOCITY_COUNT = 4
 VELOCITY_WINDOW_SECONDS = 2
 
-# Recent transaction times per account. Because the message key is the
-# account id, all of one account's events arrive on one partition, so if you
-# run two detectors in the same group, each account is still seen by only one.
+# Recent order times per customer. Because the message key is the customer
+# id, all of one customer's orders arrive on one partition, so if you run
+# two detectors in the same group, each customer is still seen by only one.
 recent = defaultdict(deque)
 
 
-def check(txn: dict) -> list[str]:
-    """Return the names of the rules this transaction breaks."""
+def check(order: dict) -> list[str]:
+    """Return the names of the rules this order breaks."""
     reasons = []
-    if txn["amount"] >= LARGE_AMOUNT:
-        reasons.append("LARGE_AMOUNT")
+    if order["amount"] >= LARGE_ORDER:
+        reasons.append("LARGE_ORDER")
 
-    now = datetime.fromisoformat(txn["timestamp"])
-    times = recent[txn["account_id"]]
+    now = datetime.fromisoformat(order["timestamp"])
+    times = recent[order["customer_id"]]
     times.append(now)
     while (now - times[0]).total_seconds() > VELOCITY_WINDOW_SECONDS:
         times.popleft()
@@ -72,17 +73,17 @@ def main():
                 print(f"ERROR: {msg.error()}")
                 continue
 
-            txn = json.loads(msg.value())
-            reasons = check(txn)
+            order = json.loads(msg.value())
+            reasons = check(order)
             if not reasons:
                 continue
 
-            alert = {"reasons": reasons, "transaction": txn}
-            producer.produce(ALERTS_TOPIC, key=txn["account_id"], value=json.dumps(alert))
+            alert = {"reasons": reasons, "order": order}
+            producer.produce(ALERTS_TOPIC, key=order["customer_id"], value=json.dumps(alert))
             producer.poll(0)
             print(
-                f"ALERT {','.join(reasons):<22} {txn['account_id']}  "
-                f"{txn['amount']:>8.2f}  {txn['merchant']}, {txn['city']}"
+                f"ALERT {','.join(reasons):<21} {order['customer_id']}  "
+                f"{order['amount']:>8.2f}  {order['product']}, {order['city']}"
             )
     except KeyboardInterrupt:
         print("\nStopping.")

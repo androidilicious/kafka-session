@@ -24,7 +24,7 @@ ALERTS_TOPIC = os.getenv("KAFKA_ALERTS_TOPIC", "fraud-alerts")
 REVIEWS_TOPIC = os.getenv("KAFKA_REVIEWS_TOPIC", "fraud-reviews")
 MODEL = os.getenv("ANTHROPIC_MODEL", "claude-haiku-5-5")
 
-PROMPT = """You are a fraud analyst at a bank. A rule-based detector flagged this event:
+PROMPT = """You are a fraud analyst at an online store on Black Friday. A rule-based detector flagged this order:
 
 {alert}
 
@@ -64,8 +64,8 @@ def main():
             producer.produce(REVIEWS_TOPIC, key=msg.key(), value=json.dumps(review))
             producer.poll(0)
 
-            txn = alert["transaction"]
-            print(f"\n{txn['account_id']}  {','.join(alert['reasons'])}  ${txn['amount']:.2f}\n  {note}")
+            order = alert["order"]
+            print(f"\n{order['customer_id']}  {','.join(alert['reasons'])}  ${order['amount']:.2f}\n  {note}")
     except KeyboardInterrupt:
         print("\nStopping.")
     finally:
