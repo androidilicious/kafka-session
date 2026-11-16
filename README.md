@@ -56,9 +56,9 @@ Keep Kafka UI open in a browser tab the whole time. The step numbers match the w
 | 02 | Terminal A: `python producer.py` | A producer writes events to a topic; Kafka stores them with no reader running |
 | 03 | Terminal B: `python consumer.py`, Terminal C: `python consumer.py --group inventory` | Each consumer group gets every order |
 | 04 | Stop Terminal C for 30 seconds, check Consumers in Kafka UI, start it again | Lag grows, then the group catches up with nothing lost |
-| 05 | `python fraud_detector.py` and `python dashboard.py` | One program reads a topic and writes to another; live totals from two topics |
+| 05 | Terminal C: `python fraud_detector.py` | One program reads a topic and writes to another |
 
-If you finish early, the end of step 05 has three extras: replay the topic with a new group (`python consumer.py --group replay-1`), follow one customer at `python producer.py --rate 5`, and run two `python consumer.py --group inventory` workers to see them split the partitions.
+The repo also has `dashboard.py` (live sales totals from two topics) and `agent_consumer.py`. The walkthrough does not use them.
 ## Run the apps in containers
 
 Instead of running `producer.py` and `fraud_detector.py` in terminals:
@@ -97,7 +97,7 @@ docker compose --profile apps down -v
 | `producer.py` | The checkout service: streams fake orders, with occasional suspicious patterns |
 | `consumer.py` | A downstream service that prints orders; `--group` sets the consumer group |
 | `fraud_detector.py` | Reads orders, writes alerts to `fraud-alerts` |
-| `dashboard.py` | Live sales totals in the terminal from two topics |
+| `dashboard.py` | Optional extra, not part of the walkthrough: live sales totals in the terminal from two topics |
 | `agent_consumer.py` | Optional extra, not part of the walkthrough: Claude reviews each alert, writes to `fraud-reviews` (needs `ANTHROPIC_API_KEY` in `.env`) |
 | `docs/index.html` | The walkthrough page, served by GitHub Pages |
 | `CLAUDE.md` | Context for AI coding assistants |

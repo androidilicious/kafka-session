@@ -172,7 +172,7 @@ table.recap th { font-weight: 600; color: var(--muted); font-size: .76rem; text-
 
 <section class="step" id="story" data-t="Black Friday">
   <div class="step-head"><span class="n">00</span><h2>Black Friday at Bull City Market</h2></div>
-  <p class="idea">You run the checkout for an online store. When a customer places an order, four other things have to happen: a confirmation email goes out, stock is reduced, the order is checked for fraud, and the live sales board is updated.</p>
+  <p class="idea">You run the checkout for an online store. When a customer places an order, three other things have to happen: a confirmation email goes out, stock is reduced, and the order is checked for fraud.</p>
   <p>The store was first built the simplest way: checkout calls each service, one after another, and waits for each one to answer. The picture below calls this design <b>Direct calls</b>. On a normal Tuesday it works. Then Black Friday starts.</p>
   <div class="flow">
     <div class="flow-head">
@@ -361,11 +361,9 @@ got   partition=0  offset=0      CUST-1003    815.20  home         Robot Vacuum,
   <div class="step-head"><span class="n">05</span><h2>One event sets off another</h2></div>
   <p class="ask">What if one event should set off another event?</p>
   <p class="idea">A program can be a consumer and a producer at the same time. It reads from one topic, does some work, and writes to another topic.</p>
-  <div class="diagram"><pre>producer.py ──> [orders] ──> fraud_detector.py ──> [fraud-alerts]
-                    │                                    │
-                    └────────> dashboard.py <────────────┘</pre></div>
-  <p>Stop Terminals B and C (notifications and inventory) with Ctrl+C. Keep checkout running in Terminal A. Start the fraud detector:</p>
-  <div class="term run"><div class="term-bar"><span><b class="tag">Run</b>Terminal B</span></div><pre class="cmd">python fraud_detector.py</pre></div>
+  <div class="diagram"><pre>producer.py ──> [orders] ──> fraud_detector.py ──> [fraud-alerts]</pre></div>
+  <p>The fraud detector reads every order and writes an alert when one looks suspicious. In Terminal C, stop inventory with Ctrl+C and start the detector:</p>
+  <div class="term run"><div class="term-bar"><span><b class="tag">Run</b>Terminal C</span></div><pre class="cmd">python fraud_detector.py</pre></div>
   <p>The part of <code>fraud_detector.py</code> that matters. It is the consumer loop from step 03 with a <code>produce</code> call from step 02 at the end:</p>
   <div class="term code"><div class="term-bar"><span><b class="tag">Code, do not run</b>fraud_detector.py (the key lines)</span></div><pre>consumer.subscribe([TOPIC])            # read from: orders
 
@@ -385,51 +383,12 @@ while True:
         key=order["customer_id"],      # same key, so the alert follows the customer
         value=json.dumps(alert),
     )</pre></div>
-  <div class="term out"><div class="term-bar"><span><b class="tag">Output</b>Terminal B should show</span></div><pre>Reading 'orders', writing alerts to 'fraud-alerts'. Ctrl+C to stop.
+  <div class="term out"><div class="term-bar"><span><b class="tag">Output</b>Terminal C should show</span></div><pre>Reading 'orders', writing alerts to 'fraud-alerts'. Ctrl+C to stop.
 ALERT LARGE_ORDER           CUST-1038   6012.77  Robot Vacuum, New York
 ALERT VELOCITY              CUST-1020    688.36  Robot Vacuum, Raleigh</pre></div>
   <p>The detector has two rules: one order of 3000 or more, or 4 orders from one customer within 2 seconds. It first checks every order placed so far, so some alerts appear straight away. After that, suspicious orders are rare, and a new alert can take a minute to appear.</p>
-  <p>Then start the sales board:</p>
-  <div class="term run"><div class="term-bar"><span><b class="tag">Run</b>Terminal C</span></div><pre class="cmd">python dashboard.py</pre></div>
-  <p>The part of <code>dashboard.py</code> that matters. It reads two topics and adds things up as events arrive:</p>
-  <div class="term code"><div class="term-bar"><span><b class="tag">Code, do not run</b>dashboard.py (the key lines)</span></div><pre>consumer = Consumer({
-    "bootstrap.servers": BOOTSTRAP,
-    "group.id": "dashboard",
-    "auto.offset.reset": "earliest",       # start from the oldest event
-    "enable.auto.commit": False,           # never save a bookmark
-})
-consumer.subscribe([TOPIC, ALERTS_TOPIC])  # one consumer, two topics
-
-while True:
-    msg = consumer.poll(1.0)
-    if msg is None or msg.error():
-        continue
-    data = json.loads(msg.value())
-    if msg.topic() == ALERTS_TOPIC:        # which topic did this event come from?
-        alerts.update(data["reasons"])     # an alert: count it by reason
-    else:
-        count += 1                         # an order: count it
-        total += data["amount"]            # and add it to the revenue</pre></div>
-  <div class="term out"><div class="term-bar"><span><b class="tag">Output</b>Terminal C should show something like</span></div><pre>BLACK FRIDAY SALES  orders=506  revenue=$256,101.39
-
-By category
-  electronics  $   93,078.00
-  toys         $   63,425.20
-  fashion      $   53,132.26
-  home         $   46,465.93</pre></div>
-  <p>In Kafka UI, open the <code>fraud-alerts</code> topic and read a message.</p>
-  <details class="check"><summary>Check: what had to change in checkout to add the fraud detector and the sales board?</summary><p>Nothing. Each one only needed the name of the topic to read. That is the fix for the tight coupling in the story.</p></details>
-  <details class="check"><summary>If you finish early: three more things to try</summary>
-    <h3>Replay the whole day</h3>
-    <p>Use a group name Kafka has never seen. A new group has no bookmark, so it reads from the first order.</p>
-  <div class="term run"><div class="term-bar"><span><b class="tag">Run</b>A new terminal</span></div><pre class="cmd">python consumer.py --group replay-1</pre></div>
-    <h3>Follow one customer</h3>
-    <p>Stop Terminal A and start checkout again at 5 orders per second, so the same customers come back sooner. Pick one customer id and watch its partition. It never changes: <code>CUST-1004</code> always lands on partition 1. That keeps one customer's orders in order.</p>
-  <div class="term run"><div class="term-bar"><span><b class="tag">Run</b>Terminal A</span></div><pre class="cmd">python producer.py --rate 5</pre></div>
-    <h3>Share the work</h3>
-    <p>Run this in two terminals. The same group id means two copies of one service, so Kafka gives each partition to only one of them: one prints two partitions and the other prints the third. Stop one, and within a few seconds the other prints all three. Kafka calls that a <b>rebalance</b>.</p>
-  <div class="term run"><div class="term-bar"><span><b class="tag">Run</b>Two terminals</span></div><pre class="cmd">python consumer.py --group inventory</pre></div>
-  </details>
+  <p>In Kafka UI, open <b>Topics</b>, click <b>fraud-alerts</b>, then <b>Messages</b>, and click one message. Checkout did not write it. The detector did.</p>
+  <details class="check"><summary>Check: what had to change in checkout to add the fraud detector?</summary><p>Nothing. The detector only needed the name of the topic to read. That is the fix for the tight coupling in the story.</p></details>
   <h3>Clean up</h3>
   <p>Stop every script with Ctrl+C, then remove the containers and their data:</p>
   <div class="term run"><div class="term-bar"><span><b class="tag">Run</b>Any terminal</span></div><pre class="cmd">docker compose --profile apps down -v</pre></div>
