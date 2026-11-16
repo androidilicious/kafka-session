@@ -236,7 +236,9 @@ table.recap th { font-weight: 600; color: var(--muted); font-size: .76rem; text-
   <div class="step-head"><span class="n">01</span><h2>Put Kafka in the middle</h2></div>
   <p class="ask">What is the thing in the middle, and where does it run?</p>
   <p class="idea">The thing in the middle is a Kafka server, called a <b>broker</b>. It saves every order it receives and hands them to any service that asks. In this lab the broker runs in Docker on your laptop. So does Kafka UI, a web page that lets you look inside the broker. Your Python scripts run on your laptop and connect to the broker at <code>localhost:9092</code>.</p>
-  <p>You need Docker Desktop running and Python 3.10 or newer.</p>
+  <p>You need Docker Desktop running and Python 3.10 to 3.14. Python 3.15 is too new: the Kafka library does not install on it yet.</p>
+  <p class="os-mac">Check your version with <code>python3 --version</code>.</p>
+  <p class="os-win">Check your version with <code>python --version</code>.</p>
   <p>The page uses three kinds of box. Only type what is in a <b>Run</b> box.</p>
   <ul class="plain">
     <li><b>Run</b> (bright edge and a filled tag): a command to type in the terminal named in its title.</li>
@@ -267,7 +269,8 @@ python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt</pre></div>
   <div class="note os-win"><b>If PowerShell says running scripts is disabled:</b> run <code>Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned</code>, then run the <code>Activate.ps1</code> line again. This only affects the current window.</div>
-  <div class="note"><b>If pip fails while building confluent-kafka:</b> your Python is too new to have a prebuilt package. Create the virtual environment with an older Python such as 3.12 and install again.</div>
+  <div class="note os-mac"><b>If your Python is 3.15, or pip fails while building confluent-kafka:</b> use the Python that comes with macOS instead. Run <code>rm -rf .venv</code>, then <code>/usr/bin/python3 -m venv .venv</code>, then the <code>source</code> and <code>pip install</code> lines again.</div>
+  <div class="note os-win"><b>If your Python is 3.15, or pip fails while building confluent-kafka:</b> install Python 3.12 from python.org. Delete the <code>.venv</code> folder, run <code>py -3.12 -m venv .venv</code>, then the <code>Activate.ps1</code> and <code>pip install</code> lines again.</div>
   <p>Open <a href="http://localhost:8080">http://localhost:8080</a>. You should see one cluster named <code>local</code>. Keep this tab open for the whole lab.</p>
   <div class="note"><b>If that address shows something else:</b> another app on your laptop is already using port 8080. In <code>docker-compose.yml</code>, change <code>"8080:8080"</code> to <code>"8081:8080"</code>, run <code>docker compose up -d</code> again, and open port 8081.</div>
   <p>The lab uses several terminals at once. <b>In every new terminal</b>, go to the <code>kafka-session</code> folder and activate the environment first, or <code>python</code> will not find the Kafka library:</p>

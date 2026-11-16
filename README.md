@@ -26,7 +26,7 @@ The walkthrough is the main guide for the session. It starts with the story, has
 ## What you need
 
 - Docker Desktop (running)
-- Python 3.10 or newer
+- Python 3.10 to 3.14 (the Kafka library does not install on Python 3.15 yet)
 
 ## Setup
 
