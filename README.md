@@ -52,15 +52,13 @@ Keep Kafka UI open in a browser tab the whole time. The step numbers match the w
 
 | Step | Run | What it shows |
 | --- | --- | --- |
-| 02 | Terminal A: `python producer.py` | A producer writes events; Kafka stores them with no reader running |
-| 03 | `docker compose exec kafka /opt/kafka/bin/kafka-topics.sh --describe --topic orders --bootstrap-server localhost:9092` | A topic and its 3 partitions |
-| 04 | Terminal B: `python consumer.py` | A consumer in group `notifications` reads every order |
-| 05 | Terminal C: `python consumer.py --group inventory` | A second group gets every order too |
-| 06 | Stop Terminal C for 30 seconds, check Consumers in Kafka UI, start it again | Lag grows, then the group catches up with nothing lost |
-| 07 | Terminal D: `python consumer.py --group replay-1` | A new group replays the topic from offset 0 |
-| 08 | Terminal A: `python producer.py --rate 5`, follow one customer id | The key always maps to the same partition |
-| 09 | A second `python consumer.py --group inventory` | Consumers in one group split the partitions; stop one and they rebalance |
-| 10 | `python fraud_detector.py` and `python dashboard.py` | Consume, process, produce; running totals from two topics |
+| 01 | `docker compose up -d`, open Kafka UI | Kafka is a broker that sits between the services |
+| 02 | Terminal A: `python producer.py` | A producer writes events to a topic; Kafka stores them with no reader running |
+| 03 | Terminal B: `python consumer.py`, Terminal C: `python consumer.py --group inventory` | Each consumer group gets every order |
+| 04 | Stop Terminal C for 30 seconds, check Consumers in Kafka UI, start it again | Lag grows, then the group catches up with nothing lost |
+| 05 | `python fraud_detector.py` and `python dashboard.py` | One program reads a topic and writes to another; live totals from two topics |
+
+If you finish early, the end of step 05 has three extras: replay the topic with a new group (`python consumer.py --group replay-1`), follow one customer at `python producer.py --rate 5`, and run two `python consumer.py --group inventory` workers to see them split the partitions.
 ## Run the apps in containers
 
 Instead of running `producer.py` and `fraud_detector.py` in terminals:
