@@ -2,7 +2,7 @@
   "name": "kafka-session",
   "image": "mcr.microsoft.com/devcontainers/python:3.12",
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+    "ghcr.io/devcontainers/features/docker-in-docker:2": { "moby": false }
   },
   "forwardPorts": [8080, 9092],
   "portsAttributes": {

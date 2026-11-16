@@ -1,11 +1,11 @@
 # Kafka Session: Hands-On Demo
 
-It is Black Friday at an online store. Checkout publishes every order to Kafka, and the other services react on their own: one prints orders (standing in for notifications and inventory), a detector flags suspicious orders into a second topic, a dashboard keeps live sales totals, and an optional AI agent reviews each alert.
+It is Black Friday at an online store. Checkout publishes every order to Kafka, and the other services react on their own: one prints orders (standing in for notifications and inventory), a detector flags suspicious orders into a second topic, and a dashboard keeps live sales totals.
 
 ```
 producer.py ──> [orders] ──> consumer.py        (notifications, inventory: prints every order)
 (checkout)         │
-                   ├───────> fraud_detector.py ──> [fraud-alerts] ──> agent_consumer.py ──> [fraud-reviews]
+                   ├───────> fraud_detector.py ──> [fraud-alerts]
                    │                                     │
                    └───────> dashboard.py <──────────────┘
 ```
@@ -44,7 +44,7 @@ pip install -r requirements.txt
 
 Activate the environment again in every new terminal.
 
-Open Kafka UI at http://localhost:8080. You should see one cluster named `local` with three topics: `orders`, `fraud-alerts`, `fraud-reviews`. They are created by the `kafka-init` container.
+Open Kafka UI at http://localhost:8080. You should see one cluster named `local` with three topics: `orders`, `fraud-alerts`, `fraud-reviews`. They are created by the `kafka-init` container. The walkthrough uses the first two.
 
 ## Exercises
 
@@ -61,8 +61,6 @@ Keep Kafka UI open in a browser tab the whole time. The step numbers match the w
 | 08 | Terminal A: `python producer.py --rate 5`, follow one customer id | The key always maps to the same partition |
 | 09 | A second `python consumer.py --group inventory` | Consumers in one group split the partitions; stop one and they rebalance |
 | 10 | `python fraud_detector.py` and `python dashboard.py` | Consume, process, produce; running totals from two topics |
-| 11 | `python agent_consumer.py` (needs `ANTHROPIC_API_KEY` in `.env`) | An AI agent is one more consumer group |
-
 ## Run the apps in containers
 
 Instead of running `producer.py` and `fraud_detector.py` in terminals:
@@ -102,6 +100,6 @@ docker compose --profile apps down -v
 | `consumer.py` | A downstream service that prints orders; `--group` sets the consumer group |
 | `fraud_detector.py` | Reads orders, writes alerts to `fraud-alerts` |
 | `dashboard.py` | Live sales totals in the terminal from two topics |
-| `agent_consumer.py` | Claude reviews each alert, writes to `fraud-reviews` |
+| `agent_consumer.py` | Optional extra, not part of the walkthrough: Claude reviews each alert, writes to `fraud-reviews` (needs `ANTHROPIC_API_KEY` in `.env`) |
 | `docs/index.html` | The walkthrough page, served by GitHub Pages |
 | `CLAUDE.md` | Context for AI coding assistants |

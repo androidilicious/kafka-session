@@ -68,13 +68,19 @@ section.step { display: flex; flex-direction: column; gap: 16px; scroll-margin-t
 .ask { font-family: var(--display); font-weight: 500; font-size: 1.12rem; color: var(--accent); }
 .idea { font-size: 1.05rem; }
 ul.plain { margin: 0; padding-left: 1.2em; max-width: 66ch; display: flex; flex-direction: column; gap: 4px; }
-.roll { border-left: 3px solid var(--p2); padding: 2px 0 2px 14px; color: var(--muted); max-width: 66ch; }
-.roll b { color: var(--ink); }
 
 .term { background: var(--code-bg); color: var(--code-ink); border-radius: 8px; overflow: hidden; }
 .term-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 8px 6px 14px; font: 600 .72rem var(--body); letter-spacing: .06em; text-transform: uppercase; color: var(--code-dim); }
 .term pre { margin: 0; padding: 4px 14px 14px; overflow-x: auto; font: .84rem/1.6 var(--mono); }
 .term.out pre { color: var(--code-dim); }
+/* Three kinds of box: RUN (type this), CODE (read this), OUTPUT (compare with your screen). */
+.tag { display: inline-block; font-weight: 700; padding: 1px 7px; border-radius: 4px; margin-right: 8px; border: 1px solid var(--code-dim); }
+.term.run { border-left: 5px solid #4fc4bb; }
+.term.run .term-bar { color: var(--code-ink); }
+.term.run .tag { background: #4fc4bb; border-color: #4fc4bb; color: #0a1015; }
+.term.code { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
+.term.code .term-bar { color: var(--muted); }
+.term.code .tag { border-color: var(--muted); }
 .copy { font: 600 .72rem var(--body); color: var(--code-ink); background: transparent; border: 1px solid var(--code-dim); border-radius: 5px; padding: 3px 9px; cursor: pointer; }
 .copy:hover { border-color: var(--code-ink); }
 
@@ -150,12 +156,12 @@ table.recap th { font-weight: 600; color: var(--muted); font-size: .76rem; text-
 <header class="top">
   <div class="title-row"><h1>Kafka Lab Walkthrough</h1>
     <button class="b" type="button" id="themeToggle" aria-label="Switch between light and dark mode">Dark mode</button></div>
-  <p class="lede">It is Black Friday and your online store is about to fall over. This page starts with that story, then takes you through twelve hands-on steps. Each step asks one question, answers it with one Kafka idea, and gives you a command to run.</p>
+  <p class="lede">It is Black Friday and your online store is about to crash. This page starts with that story, then takes you through eleven hands-on steps. Each step asks one question, answers it with one Kafka idea, and gives you a command to run.</p>
 </header>
 
 <div class="cols">
 <nav class="rail" aria-label="Steps">
-  <div class="progress"><span id="count">0 of 13 done</span></div>
+  <div class="progress"><span id="count">0 of 12 done</span></div>
   <div class="bar"><i id="bar"></i></div>
   <ol id="rail"></ol>
 </nav>
@@ -165,7 +171,7 @@ table.recap th { font-weight: 600; color: var(--muted); font-size: .76rem; text-
 <section class="step" id="story" data-t="Black Friday">
   <div class="step-head"><span class="n">00</span><h2>Black Friday at Bull City Market</h2></div>
   <p class="idea">You run the checkout for an online store. When a customer places an order, four other things have to happen: a confirmation email goes out, stock is reduced, the order is checked for fraud, and the live sales board is updated.</p>
-  <p>The first version was simple. Checkout calls each service in turn and waits for the answer. On a normal Tuesday that works. Then Black Friday starts.</p>
+  <p>The store was first built the simplest way: checkout calls each service, one after another, and waits for each one to answer. The picture below calls this design <b>Direct calls</b>. On a normal Tuesday it works. Then Black Friday starts.</p>
   <div class="flow">
     <div class="flow-head">
       <div class="seg" role="group" aria-label="Choose the design"><span>Design</span>
@@ -177,7 +183,7 @@ table.recap th { font-weight: 600; color: var(--muted); font-size: .76rem; text-
     <div class="flow-scroll"><svg viewBox="0 0 860 290" role="img" aria-label="Animated diagram with two designs. In the direct design, checkout calls notifications, then inventory, then the fraud check, and every order waits for all three. In the Kafka design, checkout writes each order to the orders topic, which has three partitions, and the notifications, inventory and fraud-detector groups each read every order on their own.">
       <defs><marker id="flowArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" class="flow-head-fill"/></marker></defs>
       <g id="flowD">
-        <text class="flow-s" x="430" y="72">Checkout calls each service in turn and waits for the last one to answer.</text>
+        <text class="flow-s" x="430" y="72">Checkout calls each service, one after another, and waits for all of them.</text>
         <path class="flow-wire" d="M130,145 L248,145" marker-end="url(#flowArrow)"/>
         <path class="flow-wire" d="M380,145 L468,145" marker-end="url(#flowArrow)"/>
         <path class="flow-wire" d="M600,145 L688,145" marker-end="url(#flowArrow)"/>
@@ -218,24 +224,29 @@ table.recap th { font-weight: 600; color: var(--muted); font-size: .76rem; text-
   </div>
   <p><b>Try this.</b> In <b>Direct calls</b>, press <b>Take inventory down</b> and watch the checkout counter. Bring it back. Then switch to <b>With Kafka</b> and do the same thing.</p>
   <ul class="plain">
-    <li><b>Direct calls:</b> one broken service stops every order. Customers stare at a loading screen, and orders placed during the outage can be lost. The services are <b>tightly coupled</b>.</li>
+    <li><b>Direct calls:</b> one broken service stops every order. Customers see a loading screen, and orders placed while it is broken can be lost. This is called <b>tight coupling</b>: each service only works if the others are working.</li>
     <li><b>With Kafka:</b> checkout writes the order down in one shared place and moves on. Each service reads from that place at its own speed. A broken service falls behind, then catches up.</li>
   </ul>
-  <p class="roll"><b>A picture to keep in your head:</b> the paper receipt roll at a checkout lane. Every order is printed on it, one line after another, and nothing is ever erased. Each department reads the roll at its own pace and keeps a bookmark. The rest of this page gives Kafka's names to the parts of that picture.</p>
   <label class="done-box"><input type="checkbox" id="done-story"> I took inventory down in both designs</label>
 </section>
 
 <section class="step" id="setup" data-t="Start Kafka">
   <div class="step-head"><span class="n">01</span><h2>Put Kafka in the middle</h2></div>
   <p class="ask">What is the thing in the middle, and where does it run?</p>
-  <p class="idea">A Kafka server is called a <b>broker</b>. It stores the events on disk and serves them to readers. This lab runs one broker and a web UI in Docker. Your Python scripts run on your laptop and connect to the broker at <code>localhost:9092</code>.</p>
+  <p class="idea">The thing in the middle is a Kafka server, called a <b>broker</b>. It saves every order it receives and hands them to any service that asks. In this lab the broker runs in Docker on your laptop. So does Kafka UI, a web page that lets you look inside the broker. Your Python scripts run on your laptop and connect to the broker at <code>localhost:9092</code>.</p>
   <p>You need Docker Desktop running and Python 3.10 or newer.</p>
+  <p>The page uses three kinds of box. Only type what is in a <b>Run</b> box.</p>
+  <ul class="plain">
+    <li><b>Run</b> (bright edge and a filled tag): a command to type in the terminal named in its title.</li>
+    <li><b>Code, do not run</b> (outlined box): a few lines from one of the scripts, to read.</li>
+    <li><b>Output</b> (dim text): what your terminal should print.</li>
+  </ul>
   <div class="seg" role="group" aria-label="Choose your operating system"><span>Show commands for</span>
     <button class="b" type="button" id="os-mac" data-os="mac">macOS</button>
     <button class="b" type="button" id="os-win" data-os="win">Windows</button></div>
   <p class="os-mac">Open the Terminal app. These commands also work on Linux.</p>
   <p class="os-win">Open <b>PowerShell</b> (or Windows Terminal), not Command Prompt or Git Bash. Docker Desktop on Windows needs WSL 2, which its installer sets up for you.</p>
-  <div class="term os-mac"><div class="term-bar"><span>Terminal (macOS)</span></div><pre class="cmd">git clone https://github.com/androidilicious/kafka-session.git
+  <div class="term run os-mac"><div class="term-bar"><span><b class="tag">Run</b>Terminal (macOS)</span></div><pre class="cmd">git clone https://github.com/androidilicious/kafka-session.git
 cd kafka-session
 
 cp .env.example .env
@@ -244,7 +255,7 @@ docker compose up -d
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt</pre></div>
-  <div class="term os-win"><div class="term-bar"><span>PowerShell (Windows)</span></div><pre class="cmd">git clone https://github.com/androidilicious/kafka-session.git
+  <div class="term run os-win"><div class="term-bar"><span><b class="tag">Run</b>PowerShell (Windows)</span></div><pre class="cmd">git clone https://github.com/androidilicious/kafka-session.git
 cd kafka-session
 
 Copy-Item .env.example .env
@@ -258,40 +269,58 @@ pip install -r requirements.txt</pre></div>
   <p>Open <a href="http://localhost:8080">http://localhost:8080</a>. You should see one cluster named <code>local</code>. Keep this tab open for the whole lab.</p>
   <div class="note"><b>If that address shows something else:</b> another app on your laptop is already using port 8080. In <code>docker-compose.yml</code>, change <code>"8080:8080"</code> to <code>"8081:8080"</code>, run <code>docker compose up -d</code> again, and open port 8081.</div>
   <p>The lab uses several terminals at once. <b>In every new terminal</b>, go to the <code>kafka-session</code> folder and activate the environment first, or <code>python</code> will not find the Kafka library:</p>
-  <div class="term os-mac"><div class="term-bar"><span>Every new terminal (macOS)</span></div><pre class="cmd">source .venv/bin/activate</pre></div>
-  <div class="term os-win"><div class="term-bar"><span>Every new PowerShell window (Windows)</span></div><pre class="cmd">.venv\Scripts\Activate.ps1</pre></div>
-  <details class="check"><summary>Check: older Kafka tutorials start a second server called ZooKeeper. Why don't we?</summary><p>ZooKeeper used to keep track of which brokers were alive. Newer Kafka versions do that job themselves, in what is called KRaft mode. That is why <code>docker-compose.yml</code> has one Kafka container and no ZooKeeper.</p></details>
+  <div class="term run os-mac"><div class="term-bar"><span><b class="tag">Run</b>Every new terminal (macOS)</span></div><pre class="cmd">source .venv/bin/activate</pre></div>
+  <div class="term run os-win"><div class="term-bar"><span><b class="tag">Run</b>Every new PowerShell window (Windows)</span></div><pre class="cmd">.venv\Scripts\Activate.ps1</pre></div>
+  <details class="check"><summary>Check: older Kafka tutorials start a second server called ZooKeeper. Why don't we?</summary><p>ZooKeeper used to keep track of which brokers were running. Newer Kafka versions do that job themselves. This is called KRaft mode. That is why <code>docker-compose.yml</code> has one Kafka container and no ZooKeeper.</p></details>
   <label class="done-box"><input type="checkbox" id="done-setup"> Kafka UI shows the cluster</label>
 </section>
 
 <section class="step" id="producer" data-t="Checkout produces events">
   <div class="step-head"><span class="n">02</span><h2>Checkout produces events</h2></div>
   <p class="ask">How does checkout hand over an order without calling anyone?</p>
-  <p class="idea">It writes an <b>event</b>: a small record that says "this happened". An event has a <b>key</b> (here the customer id), a <b>value</b> (the order as JSON) and a timestamp. A program that writes events is a <b>producer</b>. It does not know who will read them, and it does not wait for them.</p>
+  <p class="idea">It writes an <b>event</b>: a small record that says "this happened". An event has a <b>key</b> (here the customer id), a <b>value</b> (the order as JSON) and a timestamp. A program that writes events is a <b>producer</b>. It does not know who will read them, and it does not wait for anyone to read them.</p>
   <p><code>producer.py</code> plays the checkout service and places one fake order per second.</p>
-  <div class="term"><div class="term-bar"><span>Terminal A</span></div><pre class="cmd">python producer.py</pre></div>
-  <div class="term out"><div class="term-bar"><span>You should see</span></div><pre>Producing to topic 'orders' on localhost:9092 at 1.0/s. Ctrl+C to stop.
+  <p>This is the part of <code>producer.py</code> that sends an order to Kafka:</p>
+  <div class="term code"><div class="term-bar"><span><b class="tag">Code, do not run</b>producer.py (the key lines)</span></div><pre># Settings come from the .env file
+BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")  # the broker's address
+TOPIC = os.getenv("KAFKA_TOPIC", "orders")                          # the topic name
+
+producer = Producer({"bootstrap.servers": BOOTSTRAP})  # connect to the broker
+
+producer.produce(
+    TOPIC,                      # which topic to write to: orders
+    key=order["customer_id"],   # the key decides the partition
+    value=json.dumps(order),    # the order itself, as JSON text
+    on_delivery=on_delivery,    # Kafka reports back the partition and offset
+)
+producer.poll(0)                # lets that report come back</pre></div>
+  <p><code>BOOTSTRAP</code> is the address of the broker, <code>localhost:9092</code>. Kafka calls it the bootstrap server because it is the first broker a program contacts. That broker then tells the program about the rest of the cluster.</p>
+  <p>That is all a producer does: connect, then call <code>produce</code> with a topic, a key and a value. Now run it:</p>
+  <div class="term run"><div class="term-bar"><span><b class="tag">Run</b>Terminal A</span></div><pre class="cmd">python producer.py</pre></div>
+  <div class="term out"><div class="term-bar"><span><b class="tag">Output</b>You should see</span></div><pre>Producing to topic 'orders' on localhost:9092 at 1.0/s. Ctrl+C to stop.
 sent  partition=0  offset=0      CUST-1003    815.20  home         Robot Vacuum
-sent  partition=1  offset=0      CUST-1034    846.02  electronics  Laptop</pre></div>
+sent  partition=1  offset=0      CUST-1034    846.02  electronics  Laptop
+sent  partition=0  offset=1      CUST-1001     59.99  toys         Board Game</pre></div>
+  <p>Each line shows where Kafka stored the order. The <b>offset</b> is the order's position in its partition, counting from 0. Each partition counts on its own, so the first order in partition 0 and the first order in partition 1 both get offset 0. The next order in partition 0 gets offset 1. Step 08 explains partitions.</p>
   <p>Leave it running. In Kafka UI, open <b>Topics → orders → Messages</b> and click one message to see its key, value, partition and offset.</p>
-  <details class="check"><summary>Check: no other service is running yet. Where are the orders going?</summary><p>Into Kafka, on the broker's disk. Kafka stores events whether or not anyone is reading. Checkout already works on its own, which is exactly what the direct-call design could not do.</p></details>
+  <details class="check"><summary>Check: no other service is running yet. Where are the orders going?</summary><p>Into Kafka, on the broker's disk. Kafka stores events even when nobody is reading them. Checkout is working with no other service running. In the direct-call design that was impossible.</p></details>
   <label class="done-box"><input type="checkbox" id="done-producer"> Done</label>
 </section>
 
 <section class="step" id="topics" data-t="Topics">
-  <div class="step-head"><span class="n">03</span><h2>Topics: one roll per kind of event</h2></div>
+  <div class="step-head"><span class="n">03</span><h2>Topics: one per kind of event</h2></div>
   <p class="ask">Do orders, alerts and everything else land in one big pile?</p>
   <p class="idea">No. Events are grouped into named <b>topics</b>, one per kind of event. You choose the topics when you design the system, much like you choose the tables for a database.</p>
-  <p>This lab has three, created for you when Kafka started: <code>orders</code>, <code>fraud-alerts</code> and <code>fraud-reviews</code>. Look at one:</p>
-  <div class="term os-mac"><div class="term-bar"><span>Terminal B (macOS)</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-topics.sh \
+  <p>This lab uses two, created for you when Kafka started: <code>orders</code> and <code>fraud-alerts</code>. Kafka UI also lists a third, <code>fraud-reviews</code>, which this walkthrough does not use. Look at one:</p>
+  <div class="term run os-mac"><div class="term-bar"><span><b class="tag">Run</b>Terminal B (macOS)</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-topics.sh \
   --describe --topic orders --bootstrap-server localhost:9092</pre></div>
-  <div class="term os-win"><div class="term-bar"><span>Terminal B (Windows)</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-topics.sh --describe --topic orders --bootstrap-server localhost:9092</pre></div>
-  <div class="term out"><div class="term-bar"><span>You should see</span></div><pre>Topic: orders   PartitionCount: 3   ReplicationFactor: 1
+  <div class="term run os-win"><div class="term-bar"><span><b class="tag">Run</b>Terminal B (Windows)</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-topics.sh --describe --topic orders --bootstrap-server localhost:9092</pre></div>
+  <div class="term out"><div class="term-bar"><span><b class="tag">Output</b>You should see</span></div><pre>Topic: orders   PartitionCount: 3   ReplicationFactor: 1
     Topic: orders   Partition: 0   Leader: 1   Replicas: 1   Isr: 1
     Topic: orders   Partition: 1   Leader: 1   Replicas: 1   Isr: 1
     Topic: orders   Partition: 2   Leader: 1   Replicas: 1   Isr: 1</pre></div>
-  <p>The topic is split into three <b>partitions</b>. Step 08 explains why. For now, notice that every line the producer prints has a partition number.</p>
-  <details class="check"><summary>Check: ReplicationFactor is 1. What would a real store use, and why?</summary><p>Usually 3. Each partition is then copied to three brokers, so the orders survive if one broker dies. We have one broker, so there is nowhere to put a second copy.</p></details>
+  <p>The topic is split into three <b>partitions</b>. Step 08 explains why. For now, notice that every line the producer prints has a partition number. You can ignore <code>Leader</code>, <code>Replicas</code> and <code>Isr</code>. They say which broker holds each partition, and we have only one broker.</p>
+  <details class="check"><summary>Check: ReplicationFactor is 1, which means Kafka keeps one copy of the data. What would a real store use, and why?</summary><p>Usually 3. Every partition is then stored on three brokers, so no orders are lost if one broker fails. We have one broker, so there is nowhere to put a second copy.</p></details>
   <label class="done-box"><input type="checkbox" id="done-topics"> Done</label>
 </section>
 
@@ -299,63 +328,80 @@ sent  partition=1  offset=0      CUST-1034    846.02  electronics  Laptop</pre><
   <div class="step-head"><span class="n">04</span><h2>Services consume</h2></div>
   <p class="ask">Who reads the orders, and how do they know there is a new one?</p>
   <p class="idea">A program that reads a topic is a <b>consumer</b>. It subscribes to the topic and keeps asking the broker for anything new. Every consumer has a <b>group id</b>, which is the name of the service it belongs to.</p>
-  <p><code>consumer.py</code> stands in for a downstream service. It only prints each order, where a real one would send the email. Its default group is <code>notifications</code>.</p>
-  <div class="term"><div class="term-bar"><span>Terminal B</span></div><pre class="cmd">python consumer.py</pre></div>
-  <div class="term out"><div class="term-bar"><span>You should see</span></div><pre>Group 'notifications' reading topic 'orders' on localhost:9092. Ctrl+C to stop.
+  <p><code>consumer.py</code> plays a service that reacts to orders. A real service would send the email. Ours only prints each order. Its default group is <code>notifications</code>.</p>
+  <p>This is the part of <code>consumer.py</code> that reads orders from Kafka:</p>
+  <div class="term code"><div class="term-bar"><span><b class="tag">Code, do not run</b>consumer.py (the key lines, shortened)</span></div><pre>consumer = Consumer({
+    "bootstrap.servers": BOOTSTRAP,    # connect to the broker
+    "group.id": args.group,            # the service's name: notifications
+    "auto.offset.reset": "earliest",   # a new group starts from the oldest order
+})
+consumer.subscribe([TOPIC])            # which topic to read: orders
+
+while True:
+    msg = consumer.poll(1.0)           # ask the broker for the next event
+    if msg is None:
+        continue                       # nothing new yet, so ask again
+    order = json.loads(msg.value())    # turn the JSON text back into an order
+    print(msg.partition(), msg.offset(), order["customer_id"])</pre></div>
+  <p>A consumer is a loop: connect with a group id, subscribe to a topic, then keep calling <code>poll</code>. Now run it:</p>
+  <div class="term run"><div class="term-bar"><span><b class="tag">Run</b>Terminal B</span></div><pre class="cmd">python consumer.py</pre></div>
+  <div class="term out"><div class="term-bar"><span><b class="tag">Output</b>You should see</span></div><pre>Group 'notifications' reading topic 'orders' on localhost:9092. Ctrl+C to stop.
 got   partition=1  offset=0      CUST-1034    846.02  electronics  Laptop, Chapel Hill
 got   partition=0  offset=0      CUST-1003    815.20  home         Robot Vacuum, Chapel Hill</pre></div>
-  <p>It first prints the orders placed before it started, then each new one within a second of Terminal A sending it.</p>
-  <details class="check"><summary>Check: the first lines jump between partitions. Is the consumer reading out of order?</summary><p>No. Inside each partition the offsets go 0, 1, 2 in order. Across partitions there is no order at all, and Kafka does not promise one.</p></details>
+  <p>First it prints the orders that were placed before it started. After that it prints each new order as soon as Terminal A sends it.</p>
+  <details class="check"><summary>Check: the first lines jump between partitions. Is the consumer reading out of order?</summary><p>No. Each partition is read in order: offset 0, then 1, then 2. Kafka only promises order inside one partition, not between partitions.</p></details>
   <label class="done-box"><input type="checkbox" id="done-consumer"> Done</label>
 </section>
 
 <section class="step" id="groups" data-t="Every service gets every order">
   <div class="step-head"><span class="n">05</span><h2>Every service gets every order</h2></div>
   <p class="ask">Inventory needs the same orders. Does it have to share with notifications?</p>
-  <p class="idea">No. Each <b>consumer group</b> gets every event and keeps its own bookmark, called its <b>committed offset</b>. Adding a new service needs no change to checkout or to any other service.</p>
+  <p class="idea">No. Each <b>consumer group</b> gets every event and keeps its own bookmark. The bookmark is the offset the group has read up to, and Kafka calls it the <b>committed offset</b>. To add a new service, you change nothing in checkout or in any other service.</p>
   <p>Leave A and B running. Start the inventory service:</p>
-  <div class="term"><div class="term-bar"><span>Terminal C</span></div><pre class="cmd">python consumer.py --group inventory</pre></div>
+  <div class="term run"><div class="term-bar"><span><b class="tag">Run</b>Terminal C</span></div><pre class="cmd">python consumer.py --group inventory</pre></div>
+  <p>This is the same script as Terminal B. The only difference is one setting: <code>"group.id"</code> is now <code>inventory</code>, so Kafka treats it as a separate service.</p>
   <p>Terminal C prints every order too, including those placed before it existed.</p>
-  <details class="check"><summary>Check: in Kafka UI, open Consumers. How many groups are there, and what is each one's lag?</summary><p>Two: <code>notifications</code> and <code>inventory</code>. Both show a lag of 0 or a few messages. It rarely reads exactly 0 because a consumer saves its bookmark every 5 seconds, not after every message.</p></details>
+  <details class="check"><summary>Check: in Kafka UI, open Consumers. How many groups are there, and what is each one's lag (the number of orders it has not read yet)?</summary><p>Two: <code>notifications</code> and <code>inventory</code>. Both show a lag of 0 or a few orders. Lag is rarely exactly 0 because a consumer saves its bookmark every 5 seconds, not after every order.</p></details>
   <label class="done-box"><input type="checkbox" id="done-groups"> Done</label>
 </section>
 
 <section class="step" id="lag" data-t="Inventory goes down">
   <div class="step-head"><span class="n">06</span><h2>Inventory goes down</h2></div>
   <p class="ask">This is the outage from the story. What happens to the orders now?</p>
-  <p class="idea">They wait in the topic. The number of events a group has not read yet is its <b>lag</b>: the end of the partition minus the group's committed offset. In production, lag is the number people watch to see whether a service is keeping up.</p>
+  <p class="idea">They wait in the topic. The number of orders a group has not read yet is its <b>lag</b>. Kafka works it out for each partition: the newest offset minus the group's bookmark. Teams that run real systems watch lag to see whether a service is keeping up.</p>
   <p>Stop Terminal C (inventory) with Ctrl+C. Leave checkout running for 30 seconds, then run:</p>
-  <div class="term os-mac"><div class="term-bar"><span>Terminal C (macOS)</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-consumer-groups.sh \
+  <div class="term run os-mac"><div class="term-bar"><span><b class="tag">Run</b>Terminal C (macOS)</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-consumer-groups.sh \
   --describe --group inventory --bootstrap-server localhost:9092</pre></div>
-  <div class="term os-win"><div class="term-bar"><span>Terminal C (Windows)</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-consumer-groups.sh --describe --group inventory --bootstrap-server localhost:9092</pre></div>
-  <div class="term out"><div class="term-bar"><span>You should see something like</span></div><pre>Consumer group 'inventory' has no active members.
+  <div class="term run os-win"><div class="term-bar"><span><b class="tag">Run</b>Terminal C (Windows)</span></div><pre class="cmd">docker compose exec kafka /opt/kafka/bin/kafka-consumer-groups.sh --describe --group inventory --bootstrap-server localhost:9092</pre></div>
+  <div class="term out"><div class="term-bar"><span><b class="tag">Output</b>You should see something like</span></div><pre>Consumer group 'inventory' has no active members.
 GROUP      TOPIC   PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG
 inventory  orders  0          11              25              14
 inventory  orders  1          12              17              5
 inventory  orders  2          3               10              7</pre></div>
+  <p><code>CURRENT-OFFSET</code> is the group's bookmark. <code>LOG-END-OFFSET</code> is where the next order will be written. <code>LAG</code> is the difference between them.</p>
   <p>The same numbers are in Kafka UI under <b>Consumers → inventory</b>. Look at Terminals A and B: checkout and notifications never noticed. Now bring inventory back:</p>
-  <div class="term"><div class="term-bar"><span>Terminal C</span></div><pre class="cmd">python consumer.py --group inventory</pre></div>
-  <p>It prints the backlog in a burst, then goes back to one order per second.</p>
-  <details class="check"><summary>Check: were any orders lost or handled twice?</summary><p>No. The group resumed from its committed offset on each partition. Compare that with the direct-call design, where the same outage froze checkout.</p></details>
+  <div class="term run"><div class="term-bar"><span><b class="tag">Run</b>Terminal C</span></div><pre class="cmd">python consumer.py --group inventory</pre></div>
+  <p>It prints all the orders it missed at once, then goes back to one order per second.</p>
+  <details class="check"><summary>Check: were any orders lost or handled twice?</summary><p>No. Inventory started again from its bookmark in each partition, so it skipped nothing and repeated nothing. Compare that with the direct-call design, where the same outage froze checkout.</p></details>
   <label class="done-box"><input type="checkbox" id="done-lag"> Done</label>
 </section>
 
 <section class="step" id="replay" data-t="Kafka keeps the orders">
   <div class="step-head"><span class="n">07</span><h2>Kafka keeps the orders</h2></div>
   <p class="ask">Once every service has read an order, is it gone?</p>
-  <p class="idea">No. A classic message queue deletes a message once it is delivered. Kafka keeps every event until the topic's <b>retention</b> time passes (7 days by default), so a reader can start late, stop and resume, or read everything again.</p>
+  <p class="idea">No. Many older messaging systems delete a message once it is delivered. Kafka keeps every event for a set time, called the <b>retention</b> time (7 days by default). So a service can start late, stop and come back, or read everything again.</p>
   <p>Say the analytics team wants to study the whole day. Use a group name Kafka has never seen:</p>
-  <div class="term"><div class="term-bar"><span>Terminal D</span></div><pre class="cmd">python consumer.py --group replay-1</pre></div>
+  <div class="term run"><div class="term-bar"><span><b class="tag">Run</b>Terminal D</span></div><pre class="cmd">python consumer.py --group replay-1</pre></div>
   <p>Every order since the topic was created prints again, starting at offset 0. Stop it with Ctrl+C when it catches up.</p>
-  <details class="check"><summary>Check: why did replay-1 start at offset 0 while inventory resumed where it left off?</summary><p><code>inventory</code> has committed offsets, so it continues from them. <code>replay-1</code> has none, so the consumer falls back to its <code>auto.offset.reset</code> setting, which <code>consumer.py</code> sets to <code>earliest</code>.</p></details>
-  <details class="check"><summary>Check: if Kafka stores everything, is it a database?</summary><p>No. You cannot ask Kafka "what is in stock right now?" or look up one customer. A database holds the current state. Kafka holds the stream of changes that led to it. Real systems use both.</p></details>
+  <details class="check"><summary>Check: why did replay-1 start at offset 0 while inventory resumed where it left off?</summary><p><code>inventory</code> has a bookmark, so it carries on from there. <code>replay-1</code> is new and has no bookmark. A consumer with no bookmark uses its <code>auto.offset.reset</code> setting to decide where to start. <code>consumer.py</code> sets it to <code>earliest</code>, which means the start of the topic.</p></details>
+  <details class="check"><summary>Check: if Kafka stores everything, is it a database?</summary><p>No. You cannot ask Kafka "what is in stock right now?" or look up one customer. A database holds how things are now. Kafka holds the list of everything that happened. Real systems use both.</p></details>
   <label class="done-box"><input type="checkbox" id="done-replay"> Done</label>
 </section>
 
 <section class="step" id="partitions" data-t="Partitions and keys">
   <div class="step-head"><span class="n">08</span><h2>Partitions: more checkout lanes</h2></div>
-  <p class="ask">On Black Friday, one roll of orders cannot be written and read fast enough. Now what?</p>
-  <p class="idea">Open more lanes. A topic is split into <b>partitions</b>, and each partition is its own ordered list with its own <b>offsets</b>. Kafka hashes the event's <b>key</b> to pick the partition, so the same customer always lands in the same one. Order is only guaranteed inside a partition, so this keeps one customer's orders in order.</p>
+  <p class="ask">On Black Friday, one list of orders cannot be written and read fast enough. Now what?</p>
+  <p class="idea">Split it up, the way a store opens more checkout lanes. A topic is split into <b>partitions</b>. Each partition is its own list, and an event's position in that list is its <b>offset</b>. Kafka uses the event's <b>key</b> to choose the partition: it turns the key into a number (this is called hashing), and the number picks the partition. The same key always gives the same number, so one customer's orders always go to the same partition. Kafka keeps events in order inside a partition, so that customer's orders stay in order.</p>
   <p>Try it here first. Send orders from different customers and watch where they land. Then stop a group and send more.</p>
   <div class="sim" aria-label="Topic simulator">
     <h3>Topic: orders (3 partitions)</h3>
@@ -365,38 +411,77 @@ inventory  orders  2          3               10              7</pre></div>
     <div class="tablewrap"><table class="groups"><thead><tr><th>Consumer group</th><th>Status</th><th>Read / stored (p0, p1, p2)</th><th>Lag</th><th></th></tr></thead><tbody id="simGroups"></tbody></table></div>
     <div class="sim-msg" id="simMsg">Dashed boxes are orders a stopped group has not read yet.</div>
   </div>
-  <p>Now on the real thing. Stop the producer in Terminal A with Ctrl+C and restart it faster, so customers come back sooner. Leave it at this speed for the rest of the lab.</p>
-  <div class="term"><div class="term-bar"><span>Terminal A</span></div><pre class="cmd">python producer.py --rate 5</pre></div>
+  <p>Now on the real thing. Stop the producer in Terminal A with Ctrl+C and start it again at 5 orders per second. At that speed the same customers show up more often. Leave it at this speed for the rest of the lab.</p>
+  <div class="term run"><div class="term-bar"><span><b class="tag">Run</b>Terminal A</span></div><pre class="cmd">python producer.py --rate 5</pre></div>
   <p>Pick one customer id and follow it for 20 seconds. For example, <code>CUST-1004</code> lands on partition 1 every time.</p>
-  <details class="check"><summary>Check: does a customer's partition ever change? What would break if it did?</summary><p>It never changes while the topic has 3 partitions, because partition = hash(key) mod 3. If it changed, two orders from one customer could be read in the wrong order, and a fraud rule like "4 orders in 2 seconds" would miss them.</p></details>
+  <details class="check"><summary>Check: does a customer's partition ever change? What would break if it did?</summary><p>No, as long as the topic has 3 partitions. The rule is: turn the key into a number, divide it by 3, and the remainder (0, 1 or 2) is the partition. If the partition changed, one customer's orders could be read in the wrong order, and a fraud rule like "4 orders in 2 seconds" could miss them.</p></details>
   <label class="done-box"><input type="checkbox" id="done-partitions"> Done</label>
 </section>
 
 <section class="step" id="scale" data-t="Add helpers">
   <div class="step-head"><span class="n">09</span><h2>Add helpers to a busy service</h2></div>
   <p class="ask">Orders now arrive on three lanes at once. How does one inventory service keep up?</p>
-  <p class="idea">Start more copies of it with the <b>same</b> group id. Kafka gives each partition to exactly one consumer in the group, so the copies split the work without ever handling the same order twice. When a copy joins or leaves, Kafka reassigns the partitions. That is called a <b>rebalance</b>.</p>
+  <p class="idea">Start more copies of it with the <b>same</b> group id. Kafka gives each partition to exactly one consumer in the group, so the copies share the work and no order is handled twice. When a copy joins or leaves, Kafka hands out the partitions again. That is called a <b>rebalance</b>.</p>
   <p>Terminal C is still running inventory. Stop Terminals B and D, then start a second inventory worker in Terminal B:</p>
-  <div class="term"><div class="term-bar"><span>Terminal B</span></div><pre class="cmd">python consumer.py --group inventory</pre></div>
-  <p>Look at the <code>partition=</code> column in Terminals B and C. One prints two of the partitions and the other prints the third. Now stop one of them with Ctrl+C. Within a few seconds the survivor prints all three.</p>
-  <details class="check"><summary>Check: the topic has 3 partitions. What happens if you start a fourth inventory worker?</summary><p>It gets no partition and sits idle. The number of partitions is the limit on how many consumers in one group can work at once.</p></details>
+  <div class="term run"><div class="term-bar"><span><b class="tag">Run</b>Terminal B</span></div><pre class="cmd">python consumer.py --group inventory</pre></div>
+  <p>Look at the <code>partition=</code> column in Terminals B and C. One prints two of the partitions and the other prints the third. Now stop one of them with Ctrl+C. Within a few seconds, the one still running prints all three.</p>
+  <details class="check"><summary>Check: the topic has 3 partitions. What happens if you start a fourth inventory worker?</summary><p>It gets no partition and has nothing to do. A group can have at most one working consumer per partition, so 3 partitions means at most 3 workers.</p></details>
   <label class="done-box"><input type="checkbox" id="done-scale"> Done</label>
 </section>
 
 <section class="step" id="pipeline" data-t="Chain reactions">
   <div class="step-head"><span class="n">10</span><h2>Chain reactions: fraud alerts and a live sales board</h2></div>
-  <p class="ask">What if reacting to one event should create another event?</p>
-  <p class="idea">A program can be a consumer and a producer at once: read from one topic, do some work, write to another. Chaining these is how streaming pipelines are built. A consumer can also keep running totals over the stream, which is how real-time dashboards work.</p>
+  <p class="ask">What if one event should set off another event?</p>
+  <p class="idea">A program can be a consumer and a producer at the same time. It reads from one topic, does some work, and writes to another topic. Link a few of these together and you have a <b>pipeline</b>. A consumer can also keep totals as events arrive, which is how live dashboards work.</p>
   <div class="diagram"><pre>producer.py ──> [orders] ──> fraud_detector.py ──> [fraud-alerts]
                     │                                    │
                     └────────> dashboard.py <────────────┘</pre></div>
   <p>Stop the inventory workers. Keep the producer running at 5 orders per second.</p>
-  <div class="term"><div class="term-bar"><span>Terminal B</span></div><pre class="cmd">python fraud_detector.py</pre></div>
-  <div class="term"><div class="term-bar"><span>Terminal C</span></div><pre class="cmd">python dashboard.py</pre></div>
-  <div class="term out"><div class="term-bar"><span>Terminal B should show</span></div><pre>Reading 'orders', writing alerts to 'fraud-alerts'. Ctrl+C to stop.
+  <div class="term run"><div class="term-bar"><span><b class="tag">Run</b>Terminal B</span></div><pre class="cmd">python fraud_detector.py</pre></div>
+  <p>The part of <code>fraud_detector.py</code> that matters. It is the consumer loop from step 04 with a <code>produce</code> call from step 02 at the end:</p>
+  <div class="term code"><div class="term-bar"><span><b class="tag">Code, do not run</b>fraud_detector.py (the key lines)</span></div><pre>consumer.subscribe([TOPIC])            # read from: orders
+
+while True:
+    msg = consumer.poll(1.0)           # consume: get the next order
+    if msg is None:
+        continue
+    order = json.loads(msg.value())
+
+    reasons = check(order)             # process: apply the two fraud rules
+    if not reasons:
+        continue                       # a normal order, so nothing to write
+
+    alert = {"reasons": reasons, "order": order}
+    producer.produce(                  # produce: write the alert
+        ALERTS_TOPIC,                  # to a second topic: fraud-alerts
+        key=order["customer_id"],      # same key, so the alert follows the customer
+        value=json.dumps(alert),
+    )</pre></div>
+  <div class="term out"><div class="term-bar"><span><b class="tag">Output</b>Terminal B should show</span></div><pre>Reading 'orders', writing alerts to 'fraud-alerts'. Ctrl+C to stop.
 ALERT LARGE_ORDER           CUST-1038   6012.77  Robot Vacuum, New York
 ALERT VELOCITY              CUST-1020    688.36  Robot Vacuum, Raleigh</pre></div>
-  <div class="term out"><div class="term-bar"><span>Terminal C should show</span></div><pre>BLACK FRIDAY SALES  orders=506  revenue=$256,101.39
+  <p>Then start the sales board:</p>
+  <div class="term run"><div class="term-bar"><span><b class="tag">Run</b>Terminal C</span></div><pre class="cmd">python dashboard.py</pre></div>
+  <p>The part of <code>dashboard.py</code> that matters. It reads two topics and adds things up as events arrive:</p>
+  <div class="term code"><div class="term-bar"><span><b class="tag">Code, do not run</b>dashboard.py (the key lines)</span></div><pre>consumer = Consumer({
+    "bootstrap.servers": BOOTSTRAP,
+    "group.id": "dashboard",
+    "auto.offset.reset": "earliest",       # start from the oldest event
+    "enable.auto.commit": False,           # never save a bookmark
+})
+consumer.subscribe([TOPIC, ALERTS_TOPIC])  # one consumer, two topics
+
+while True:
+    msg = consumer.poll(1.0)
+    if msg is None or msg.error():
+        continue
+    data = json.loads(msg.value())
+    if msg.topic() == ALERTS_TOPIC:        # which topic did this event come from?
+        alerts.update(data["reasons"])     # an alert: count it by reason
+    else:
+        count += 1                         # an order: count it
+        total += data["amount"]            # and add it to the revenue</pre></div>
+  <div class="term out"><div class="term-bar"><span><b class="tag">Output</b>Terminal C should show</span></div><pre>BLACK FRIDAY SALES  orders=506  revenue=$256,101.39
 
 By category
   electronics  $   93,078.00
@@ -404,27 +489,15 @@ By category
   fashion      $   53,132.26
   home         $   46,465.93</pre></div>
   <p>The detector has two rules: one order of 3000 or more, or 4 orders from one customer within 2 seconds. In Kafka UI, open the <code>fraud-alerts</code> topic and read a message.</p>
-  <details class="check"><summary>Check: the detector keeps each customer's recent orders in memory. If you ran two detectors in the same group, could one customer be split between them?</summary><p>No. The key sends a customer to one partition (step 08), and a partition belongs to one consumer in the group (step 09). So each customer is seen by exactly one detector.</p></details>
-  <details class="check"><summary>Check: stop and restart dashboard.py. Its totals come back. From where?</summary><p>From Kafka. The dashboard never commits offsets, so on every start it reads both topics from the beginning and rebuilds its totals (step 07). The topic is the source of truth, and the totals are just a view of it.</p></details>
+  <details class="check"><summary>Check: the detector remembers each customer's recent orders. If you ran two detectors in the same group, could one customer's orders be split between them?</summary><p>No. The key sends a customer to one partition (step 08), and a partition belongs to one consumer in the group (step 09). So each customer is seen by exactly one detector.</p></details>
+  <details class="check"><summary>Check: stop and restart dashboard.py. Its totals come back. From where?</summary><p>From Kafka. The dashboard never saves a bookmark, so every time it starts it reads both topics from the beginning and adds everything up again (step 07). The orders in Kafka are the real record. The totals are worked out from them.</p></details>
   <label class="done-box"><input type="checkbox" id="done-pipeline"> Done</label>
 </section>
 
-<section class="step" id="agent" data-t="Add an AI agent">
-  <div class="step-head"><span class="n">11</span><h2>Add an AI agent (optional)</h2></div>
-  <p class="ask">Where would an AI agent plug into this?</p>
-  <p class="idea">The same way as every other service. It is one more consumer group that reads a topic and writes to another.</p>
-  <p>Open <code>.env</code> in your editor and set <code>ANTHROPIC_API_KEY</code> to your key. Then:</p>
-  <div class="term"><div class="term-bar"><span>Terminal D</span></div><pre class="cmd">python agent_consumer.py</pre></div>
-  <p>For each new alert, the agent asks Claude for a two-sentence review and writes it to <code>fraud-reviews</code>. Open that topic in Kafka UI.</p>
-  <div class="note"><b>If the key is blank:</b> the agent starts normally, then stops with an authentication error on the first alert. Never paste your key into a chat or commit <code>.env</code>.</div>
-  <details class="check"><summary>Check: what had to change in Kafka, checkout or the detector to add the agent?</summary><p>Nothing. The agent only needed the name of the topic to read. If you stop it for a minute and restart it, the alerts from that minute are still in the topic and it reviews them then.</p></details>
-  <label class="done-box"><input type="checkbox" id="done-agent"> Done</label>
-</section>
-
 <section class="step" id="cleanup" data-t="Clean up">
-  <div class="step-head"><span class="n">12</span><h2>Clean up and recap</h2></div>
+  <div class="step-head"><span class="n">11</span><h2>Clean up and recap</h2></div>
   <p>Stop every script with Ctrl+C, then remove the containers and their data:</p>
-  <div class="term"><div class="term-bar"><span>Terminal</span></div><pre class="cmd">docker compose --profile apps down -v</pre></div>
+  <div class="term run"><div class="term-bar"><span><b class="tag">Run</b>Terminal</span></div><pre class="cmd">docker compose --profile apps down -v</pre></div>
   <h3>The questions you answered</h3>
   <div class="tablewrap"><table class="recap">
     <thead><tr><th>Question</th><th>Kafka's answer</th></tr></thead>
@@ -432,12 +505,12 @@ By category
       <tr><td>How do services stop depending on each other?</td><td>A <b>broker</b> in the middle stores <b>events</b></td></tr>
       <tr><td>Who writes, and who reads?</td><td><b>Producers</b> write, <b>consumers</b> read, and neither knows the other</td></tr>
       <tr><td>How are events organized?</td><td>Into <b>topics</b>, one per kind of event</td></tr>
-      <tr><td>How do several services read the same events?</td><td>Each <b>consumer group</b> keeps its own <b>committed offset</b></td></tr>
+      <tr><td>How do several services read the same events?</td><td>Each <b>consumer group</b> keeps its own bookmark, the <b>committed offset</b></td></tr>
       <tr><td>What happens when a service is down?</td><td>Its <b>lag</b> grows, then it catches up</td></tr>
       <tr><td>Are events deleted after reading?</td><td>No, they stay for the <b>retention</b> time and can be replayed</td></tr>
       <tr><td>How does it handle Black Friday volume?</td><td><b>Partitions</b>, with the <b>key</b> keeping each customer in order</td></tr>
-      <tr><td>How does one service go faster?</td><td>More consumers in the same group, and a <b>rebalance</b></td></tr>
-      <tr><td>How do events trigger more events?</td><td>Consume, process, produce</td></tr>
+      <tr><td>How does one service go faster?</td><td>Add consumers to the same group. Kafka shares out the partitions (a <b>rebalance</b>)</td></tr>
+      <tr><td>How do events trigger more events?</td><td>A program reads one topic and writes to another (consume, process, produce)</td></tr>
     </tbody></table></div>
   <p>The story-first order of this page follows <a href="https://www.youtube.com/watch?v=QkdkLdMBuL0">Kafka Tutorial for Beginners</a> by TechWorld with Nana. Watch it afterwards for a second explanation of the same ideas.</p>
   <label class="done-box"><input type="checkbox" id="done-cleanup"> Done</label>
@@ -651,7 +724,7 @@ By category
   function setInv(down, quiet) {
     if (!down && invDown && !quiet) {
       if (mode === 'direct') { flowSay('Inventory is back. ' + c.wait + ' stuck orders finally go through. Those customers waited the whole time.'); c.done += c.wait; c.wait = 0; }
-      else { flowSay('Inventory is back and caught up on ' + c.lag + ' orders from its bookmark. Checkout never slowed down.'); c.inv += c.lag; c.lag = 0; }
+      else { flowSay('Inventory is back and caught up on the ' + c.lag + ' orders it missed. Checkout never slowed down.'); c.inv += c.lag; c.lag = 0; }
     }
     if (down) flowSay(mode === 'direct'
       ? 'Inventory is down. Every order now gets stuck there, and checkout cannot finish any of them.'
